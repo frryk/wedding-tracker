@@ -3,13 +3,13 @@ import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebase
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyCswQoKzD5wfSnheEPpia1PCGqxVnXNQm8",
-  authDomain: "wedd-cb4d6.firebaseapp.com",
-  projectId: "wedd-cb4d6",
-  storageBucket: "wedd-cb4d6.firebasestorage.app",
-  messagingSenderId: "533724418327",
-  appId: "1:533724418327:web:8bf38f1451b265ec11e752",
-  databaseURL: "https://wedd-cb4d6-default-rtdb.asia-southeast1.firebasedatabase.app"
+    apiKey: "AIzaSyCswQoKzD5wfSnheEPpia1PCGqxVnXNQm8",
+    authDomain: "wedd-cb4d6.firebaseapp.com",
+    projectId: "wedd-cb4d6",
+    storageBucket: "wedd-cb4d6.firebasestorage.app",
+    messagingSenderId: "533724418327",
+    appId: "1:533724418327:web:8bf38f1451b265ec11e752",
+    databaseURL: "https://wedd-cb4d6-default-rtdb.asia-southeast1.firebasedatabase.app"
 };
 
 // Initialize Firebase
@@ -44,7 +44,8 @@ const defaultState = {
     vendorFinal: [],
     jobdesk: [],
     catering: [],
-    undangan: []
+    undangan: [],
+    weddingDate: ''
 };
 
 
@@ -72,20 +73,21 @@ onValue(ref(db, 'weddingTrackerData'), (snapshot) => {
             vendorFinal: data.vendorFinal || [],
             jobdesk: data.jobdesk || [],
             catering: data.catering || [],
-            undangan: data.undangan || []
+            undangan: data.undangan || [],
+            weddingDate: data.weddingDate || ''
         };
     } else {
         // If DB is totally empty (First ever load)
-        appState = JSON.parse(JSON.stringify(defaultState)); 
+        appState = JSON.parse(JSON.stringify(defaultState));
         // Save default state to Firebase
         set(ref(db, 'weddingTrackerData'), appState);
     }
-    
+
     // Once data is locked in, re-render UI
     isLoaded = true;
     renderAll();
     updateProgress();
-    
+
     if (appState.theme === 'dark') {
         document.body.setAttribute('data-theme', 'dark');
     } else {
@@ -95,7 +97,7 @@ onValue(ref(db, 'weddingTrackerData'), (snapshot) => {
 
 // Save State to Firebase
 function saveState() {
-    if(appState) {
+    if (appState) {
         set(ref(db, 'weddingTrackerData'), appState)
             .then(() => updateProgress())
             .catch(error => showToast("Gagal menyimpan ke database"));
@@ -123,7 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Theme Toggle
     document.getElementById('themeToggle').addEventListener('click', () => {
-        if(!isLoaded) return;
+        if (!isLoaded) return;
         const isDark = document.body.getAttribute('data-theme') === 'dark';
         if (isDark) {
             document.body.removeAttribute('data-theme');
@@ -133,6 +135,14 @@ document.addEventListener('DOMContentLoaded', () => {
             appState.theme = 'dark';
         }
         saveState();
+    });
+
+    // Date Select Modal Logic
+    const dateModal = document.getElementById('dateModal');
+    const closeDateBtns = [document.getElementById('closeDateModalBtn'), document.getElementById('cancelDateModalBtn')];
+
+    closeDateBtns.forEach(btn => {
+        if (btn) btn.addEventListener('click', closeDateModal);
     });
 
     // Mobile Sidebar Toggle
@@ -157,7 +167,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const target = btn.getAttribute('data-target');
             btn.classList.add('active');
             document.getElementById(target).classList.add('active');
-            
+
             pageTitle.textContent = btn.textContent.trim();
 
             if (window.innerWidth <= 768) {
@@ -169,9 +179,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Modal Logic
     const editModal = document.getElementById('editModal');
     const closeModalBtns = [document.getElementById('closeModalBtn'), document.getElementById('cancelModalBtn')];
-    
+
     closeModalBtns.forEach(btn => {
-        if(btn) btn.addEventListener('click', closeEditModal);
+        if (btn) btn.addEventListener('click', closeEditModal);
     });
 
     window.addEventListener('click', (e) => {
@@ -181,12 +191,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const saveModalBtn = document.getElementById('saveModalBtn');
-    if(saveModalBtn) saveModalBtn.addEventListener('click', saveEditedItem);
+    if (saveModalBtn) saveModalBtn.addEventListener('click', saveEditedItem);
 });
 
 function closeEditModal() {
     const editModal = document.getElementById('editModal');
-    if(editModal) editModal.classList.remove('show');
+    if (editModal) editModal.classList.remove('show');
     currentEditStateKey = null;
     currentEditId = null;
 }
@@ -207,11 +217,15 @@ window.addCatering = addCatering;
 window.updateCateringField = updateCateringField;
 window.addUndangan = addUndangan;
 window.updateUndanganField = updateUndanganField;
+window.openDateModal = openDateModal;
+window.closeDateModal = closeDateModal;
+window.saveWeddingDate = saveWeddingDate;
+window.updateCountdown = updateCountdown;
 
 // ====== Render Functions ======
 
 function renderAll() {
-    if(!appState) return;
+    if (!appState) return;
     renderList('persiapan', 'listPersiapan');
     renderTimeline();
     renderSimpleList('berkasCPW', 'listBerkasCPW');
@@ -223,13 +237,14 @@ function renderAll() {
     renderJobdesk();
     renderCatering();
     renderUndangan();
+    updateCountdown();
 }
 
 // 1. Persiapan Menikah
 function renderList(stateKey, elementId) {
     const list = document.getElementById(elementId);
     list.innerHTML = '';
-    
+
     appState[stateKey].forEach(item => {
         const li = document.createElement('li');
         li.className = `item-row ${item.checked ? 'completed' : ''}`;
@@ -252,13 +267,13 @@ function renderList(stateKey, elementId) {
 }
 
 function addItem(stateKey) {
-    if(!isLoaded) return;
+    if (!isLoaded) return;
     const titleInput = document.getElementById('inputPersiapanTitle');
     const descInput = document.getElementById('inputPersiapanDesc');
     const linkInput = document.getElementById('inputPersiapanLink');
-    
+
     if (!titleInput.value.trim()) return showToast('Judul tidak boleh kosong');
-    
+
     appState[stateKey].push({
         id: generateId(),
         title: titleInput.value.trim(),
@@ -266,20 +281,21 @@ function addItem(stateKey) {
         link: linkInput ? linkInput.value.trim() : '',
         checked: false
     });
-    
+
     titleInput.value = '';
     descInput.value = '';
-    if(linkInput) linkInput.value = '';
-    
+    if (linkInput) linkInput.value = '';
+
     saveState();
     showToast('Berhasil ditambahkan');
 }
+
 
 // 2. Timeline Persiapan
 function renderTimeline() {
     const container = document.getElementById('timelineContainer');
     container.innerHTML = '';
-    
+
     const grouped = appState.timeline.reduce((acc, curr) => {
         if (!acc[curr.month]) acc[curr.month] = [];
         acc[curr.month].push(curr);
@@ -315,19 +331,19 @@ function renderTimeline() {
 }
 
 function addTimelineTask() {
-    if(!isLoaded) return;
+    if (!isLoaded) return;
     const month = document.getElementById('inputTimelineMonth').value;
     const task = document.getElementById('inputTimelineTask').value;
-    
+
     if (!task.trim()) return showToast('Tugas tidak boleh kosong');
-    
+
     appState.timeline.push({
         id: generateId(),
         month: month,
         task: task.trim(),
         checked: false
     });
-    
+
     document.getElementById('inputTimelineTask').value = '';
     saveState();
     showToast('Timeline ditambahkan');
@@ -335,8 +351,8 @@ function addTimelineTask() {
 
 // Generic Toggles & Deletes
 function toggleCheck(stateKey, id) {
-    if(!isLoaded) return;
-    const index = appState[stateKey].findIndex(item => item.id === id);
+    if (!isLoaded) return;
+    const index = appState[stateKey].findIndex(item => item.id == id);
     if (index !== -1) {
         appState[stateKey][index].checked = !appState[stateKey][index].checked;
         saveState();
@@ -344,9 +360,9 @@ function toggleCheck(stateKey, id) {
 }
 
 function deleteItem(stateKey, id) {
-    if(!isLoaded) return;
-    if(confirm('Hapus item ini?')) {
-        appState[stateKey] = appState[stateKey].filter(item => item.id !== id);
+    if (!isLoaded) return;
+    if (confirm('Hapus item ini?')) {
+        appState[stateKey] = appState[stateKey].filter(item => item.id != id);
         saveState();
         renderAll();
         showToast('Item dihapus');
@@ -354,9 +370,9 @@ function deleteItem(stateKey, id) {
 }
 
 function editItem(stateKey, id) {
-    if(!isLoaded) return;
-    const item = appState[stateKey].find(i => i.id === id);
-    if(!item) return;
+    if (!isLoaded) return;
+    const item = appState[stateKey].find(i => i.id == id);
+    if (!item) return;
 
     currentEditStateKey = stateKey;
     currentEditId = id;
@@ -368,7 +384,7 @@ function editItem(stateKey, id) {
     modalTitle.textContent = 'Edit Item';
     let html = '';
 
-    switch(stateKey) {
+    switch (stateKey) {
         case 'persiapan':
             html += `<div class="form-group"><label>Judul</label><input type="text" id="editPersTitle" value="${item.title}"></div>`;
             html += `<div class="form-group"><label>Keterangan</label><input type="text" id="editPersDesc" value="${item.desc || ''}"></div>`;
@@ -417,13 +433,13 @@ function editItem(stateKey, id) {
 }
 
 function saveEditedItem() {
-    if(!currentEditStateKey || !currentEditId || !appState) return;
-    
-    const item = appState[currentEditStateKey].find(i => i.id === currentEditId);
-    if(!item) return;
+    if (!currentEditStateKey || !currentEditId || !appState) return;
+
+    const item = appState[currentEditStateKey].find(i => i.id == currentEditId);
+    if (!item) return;
 
     try {
-        switch(currentEditStateKey) {
+        switch (currentEditStateKey) {
             case 'persiapan':
                 item.title = document.getElementById('editPersTitle').value.trim() || item.title;
                 item.desc = document.getElementById('editPersDesc').value.trim();
@@ -471,45 +487,9 @@ function saveEditedItem() {
         renderAll();
         closeEditModal();
         showToast('Item berhasil diperbarui');
-    } catch(e) {
+    } catch (e) {
         console.error("Error saving edit:", e);
         showToast('Gagal menyimpan perubahan');
-    }
-}
-
-// ====== Setting Menu ======
-function saveWeddingDate() {
-    if(!isLoaded || !appState) return;
-    const dateInput = document.getElementById('inputWeddingDate').value;
-    
-    appState.settings.weddingDate = dateInput;
-    saveState();
-    renderAll();
-    showToast('Tanggal pernikahan disimpan');
-}
-
-function renderSettings() {
-    if(!appState.settings) return;
-    
-    // Set input value
-    const dateInput = document.getElementById('inputWeddingDate');
-    if (dateInput) {
-        dateInput.value = appState.settings.weddingDate || '';
-    }
-
-    // Display in sidebar
-    const container = document.getElementById('sidebarDateContainer');
-    const textNode = document.getElementById('sidebarDateText');
-    if (container && textNode) {
-        if (appState.settings.weddingDate) {
-            // Format format: 25 Mei 2026
-            const dateObj = new Date(appState.settings.weddingDate);
-            const options = { day: 'numeric', month: 'long', year: 'numeric' };
-            textNode.textContent = dateObj.toLocaleDateString('id-ID', options);
-            container.style.display = 'block';
-        } else {
-            container.style.display = 'none';
-        }
     }
 }
 
@@ -517,7 +497,7 @@ function renderSettings() {
 function renderSimpleList(stateKey, elementId) {
     const list = document.getElementById(elementId);
     list.innerHTML = '';
-    
+
     appState[stateKey].forEach(item => {
         const li = document.createElement('li');
         li.className = `item-row ${item.checked ? 'completed' : ''}`;
@@ -538,18 +518,18 @@ function renderSimpleList(stateKey, elementId) {
 }
 
 function addSimpleItem(elementId, inputId) {
-    if(!isLoaded) return;
+    if (!isLoaded) return;
     const stateKey = elementId === 'listBerkasCPW' ? 'berkasCPW' : 'berkasCPP';
     const input = document.getElementById(inputId);
-    
+
     if (!input.value.trim()) return;
-    
+
     appState[stateKey].push({
         id: generateId(),
         title: input.value.trim(),
         checked: false
     });
-    
+
     input.value = '';
     saveState();
 }
@@ -562,19 +542,19 @@ function formatRp(angka) {
 function renderBudget() {
     const tbody = document.getElementById('tableBudget');
     tbody.innerHTML = '';
-    
+
     let tEstimasi = 0;
     let tAktual = 0;
-    
+
     appState.budget.forEach(item => {
         tEstimasi += Number(item.estimasi);
         tAktual += Number(item.aktual);
-        
+
         let statusBadge = item.aktual > 0 ? `<span class="badge success">Sudah Dibayar</span>` : `<span class="badge warning">Belum Dibayar</span>`;
-        if(item.aktual > 0 && item.aktual < item.estimasi) {
+        if (item.aktual > 0 && item.aktual < item.estimasi) {
             statusBadge = `<span class="badge primary">DP / Sebagian</span>`;
         } else if (item.aktual > item.estimasi) {
-             statusBadge = `<span class="badge danger">Overbudget</span>`;
+            statusBadge = `<span class="badge danger">Overbudget</span>`;
         }
 
         tbody.innerHTML += `
@@ -595,20 +575,20 @@ function renderBudget() {
             </tr>
         `;
     });
-    
+
     document.getElementById('totalEstimasi').textContent = formatRp(tEstimasi);
     document.getElementById('totalTerpakai').textContent = formatRp(tAktual);
     document.getElementById('sisaBudget').textContent = formatRp(tEstimasi - tAktual);
 }
 
 function addBudget() {
-    if(!isLoaded) return;
+    if (!isLoaded) return;
     const kat = document.getElementById('budgetKategori').value;
     const item = document.getElementById('budgetItem').value;
     const est = document.getElementById('budgetEstimasi').value;
-    
-    if(!kat || !item || !est) return showToast('Lengkapi semua data budget');
-    
+
+    if (!kat || !item || !est) return showToast('Lengkapi semua data budget');
+
     appState.budget.push({
         id: generateId(),
         kategori: kat,
@@ -616,19 +596,19 @@ function addBudget() {
         estimasi: est,
         aktual: 0
     });
-    
+
     document.getElementById('budgetKategori').value = '';
     document.getElementById('budgetItem').value = '';
     document.getElementById('budgetEstimasi').value = '';
-    
+
     saveState();
     showToast('Budget ditambahkan');
 }
 
 function updateBiayaAktual(id, value) {
-    if(!isLoaded) return;
-    const item = appState.budget.find(i => i.id === id);
-    if(item) {
+    if (!isLoaded) return;
+    const item = appState.budget.find(i => i.id == id);
+    if (item) {
         item.aktual = value;
         saveState();
         showToast('Biaya aktual diupdate');
@@ -639,7 +619,7 @@ function updateBiayaAktual(id, value) {
 function renderSeserahan() {
     const tbody = document.getElementById('tableSeserahan');
     tbody.innerHTML = '';
-    
+
     appState.seserahan.forEach(item => {
         tbody.innerHTML += `
             <tr class="${item.checked ? 'completed' : ''}">
@@ -661,13 +641,13 @@ function renderSeserahan() {
 }
 
 function addSeserahan() {
-    if(!isLoaded) return;
+    if (!isLoaded) return;
     const item = document.getElementById('seserahanItem').value;
     const brand = document.getElementById('seserahanBrand').value;
     const harga = document.getElementById('seserahanHarga').value || 0;
-    
-    if(!item) return showToast('Nama item wajib diisi');
-    
+
+    if (!item) return showToast('Nama item wajib diisi');
+
     appState.seserahan.push({
         id: generateId(),
         item: item,
@@ -675,11 +655,11 @@ function addSeserahan() {
         harga: harga,
         checked: false
     });
-    
+
     document.getElementById('seserahanItem').value = '';
     document.getElementById('seserahanBrand').value = '';
     document.getElementById('seserahanHarga').value = '';
-    
+
     saveState();
     showToast('Item Seserahan ditambahkan');
 }
@@ -688,7 +668,7 @@ function addSeserahan() {
 function renderVendor(stateKey, elementId) {
     const list = document.getElementById(elementId);
     list.innerHTML = '';
-    
+
     appState[stateKey].forEach(item => {
         list.innerHTML += `
             <li class="item-row" style="padding: 12px; margin-bottom: 8px;">
@@ -702,9 +682,9 @@ function renderVendor(stateKey, elementId) {
                     </div>
                 </div>
                 <div style="display: flex; gap: 4px; align-items: center;">
-                    ${stateKey === 'vendorSeleksi' ? 
-                        `<button class="btn-icon" style="color: var(--success);" onclick="pindahFinal(${item.id})" title="Pilih sebagai Final"><i class="ri-check-double-line"></i></button>` 
-                        : ''}
+                    ${stateKey === 'vendorSeleksi' ?
+                `<button class="btn-icon" style="color: var(--success);" onclick="pindahFinal(${item.id})" title="Pilih sebagai Final"><i class="ri-check-double-line"></i></button>`
+                : ''}
                     <button class="btn-icon edit" onclick="editItem('${stateKey}', ${item.id})"><i class="ri-edit-line"></i></button>
                     <button class="btn-icon delete" onclick="deleteItem('${stateKey}', ${item.id})"><i class="ri-delete-bin-line"></i></button>
                 </div>
@@ -714,32 +694,32 @@ function renderVendor(stateKey, elementId) {
 }
 
 function addVendor(type) {
-    if(!isLoaded) return;
+    if (!isLoaded) return;
     const stateKey = type === 'seleksi' ? 'vendorSeleksi' : 'vendorFinal';
     const katId = type === 'seleksi' ? 'inputVendorKategori' : 'inputVendorKategoriFinal';
     const namaId = type === 'seleksi' ? 'inputVendorNama' : 'inputVendorNamaFinal';
-    
+
     const kat = document.getElementById(katId).value;
     const nama = document.getElementById(namaId).value;
-    
-    if(!kat || !nama) return showToast('Lengkapi data vendor');
-    
+
+    if (!kat || !nama) return showToast('Lengkapi data vendor');
+
     appState[stateKey].push({
         id: generateId(),
         kategori: kat,
         nama: nama
     });
-    
+
     document.getElementById(katId).value = '';
     document.getElementById(namaId).value = '';
-    
+
     saveState();
 }
 
 function pindahFinal(id) {
-    if(!isLoaded) return;
-    const itemIndex = appState.vendorSeleksi.findIndex(i => i.id === id);
-    if(itemIndex > -1) {
+    if (!isLoaded) return;
+    const itemIndex = appState.vendorSeleksi.findIndex(i => i.id == id);
+    if (itemIndex > -1) {
         const item = appState.vendorSeleksi[itemIndex];
         appState.vendorFinal.push(item);
         appState.vendorSeleksi.splice(itemIndex, 1);
@@ -752,7 +732,7 @@ function pindahFinal(id) {
 function renderJobdesk() {
     const container = document.getElementById('jobdeskContainer');
     container.innerHTML = '';
-    
+
     const grouped = appState.jobdesk.reduce((acc, curr) => {
         if (!acc[curr.vendor]) acc[curr.vendor] = [];
         acc[curr.vendor].push(curr);
@@ -780,21 +760,21 @@ function renderJobdesk() {
 }
 
 function addJobdesk() {
-    if(!isLoaded) return;
+    if (!isLoaded) return;
     const vendor = document.getElementById('jobdeskVendor').value;
     const tugas = document.getElementById('jobdeskTugas').value;
-    
-    if(!vendor || !tugas) return showToast('Lengkapi vendor dan tugasnya');
-    
+
+    if (!vendor || !tugas) return showToast('Lengkapi vendor dan tugasnya');
+
     appState.jobdesk.push({
         id: generateId(),
         vendor: vendor,
         tugas: tugas
     });
-    
+
     document.getElementById('jobdeskVendor').value = '';
     document.getElementById('jobdeskTugas').value = '';
-    
+
     saveState();
     showToast('Tugas ditambahkan');
 }
@@ -803,11 +783,11 @@ function addJobdesk() {
 function renderCatering() {
     const tbody = document.getElementById('tableCatering');
     tbody.innerHTML = '';
-    
+
     appState.catering.forEach(item => {
-        const badgeKeputusan = item.keputusan === 'DP / Final' ? `<span class="badge success">${item.keputusan}</span>` : 
-                               (item.keputusan === 'Ditolak' ? `<span class="badge danger">${item.keputusan}</span>` : `<span class="badge warning">${item.keputusan}</span>`);
-        
+        const badgeKeputusan = item.keputusan === 'DP / Final' ? `<span class="badge success">${item.keputusan}</span>` :
+            (item.keputusan === 'Ditolak' ? `<span class="badge danger">${item.keputusan}</span>` : `<span class="badge warning">${item.keputusan}</span>`);
+
         tbody.innerHTML += `
             <tr>
                 <td><strong>${item.nama}</strong></td>
@@ -838,13 +818,13 @@ function renderCatering() {
 }
 
 function addCatering() {
-    if(!isLoaded) return;
+    if (!isLoaded) return;
     const nama = document.getElementById('cateringNama').value;
     const paket = document.getElementById('cateringPaket').value;
     const harga = document.getElementById('cateringHarga').value;
-    
-    if(!nama) return showToast('Nama catering wajib diisi');
-    
+
+    if (!nama) return showToast('Nama catering wajib diisi');
+
     appState.catering.push({
         id: generateId(),
         nama: nama,
@@ -853,19 +833,19 @@ function addCatering() {
         testFood: false,
         keputusan: 'Pending'
     });
-    
+
     document.getElementById('cateringNama').value = '';
     document.getElementById('cateringPaket').value = '';
     document.getElementById('cateringHarga').value = '';
-    
+
     saveState();
     showToast('Kandidat catering ditambahkan');
 }
 
 function updateCateringField(id, field, value) {
-    if(!isLoaded) return;
-    const item = appState.catering.find(i => i.id === id);
-    if(item) {
+    if (!isLoaded) return;
+    const item = appState.catering.find(i => i.id == id);
+    if (item) {
         item[field] = value;
         saveState();
     }
@@ -875,18 +855,18 @@ function updateCateringField(id, field, value) {
 function renderUndangan() {
     const tbody = document.getElementById('tableUndangan');
     tbody.innerHTML = '';
-    
+
     let tTotal = 0;
     let tHadir = 0;
     let tTidak = 0;
-    
+
     appState.undangan.forEach(item => {
         tTotal += Number(item.jumlah);
-        if(item.konfirmasi === 'Hadir') tHadir += Number(item.jumlah);
-        if(item.konfirmasi === 'Tidak Hadir') tTidak += Number(item.jumlah);
-        
-        const badgeKonfir = item.konfirmasi === 'Hadir' ? `<span class="badge success"><i class="ri-check-line"></i> Hadir</span>` : 
-                               (item.konfirmasi === 'Tidak Hadir' ? `<span class="badge danger"><i class="ri-close-line"></i> Tidak Hadir</span>` : `<span class="badge warning">Pending</span>`);
+        if (item.konfirmasi === 'Hadir') tHadir += Number(item.jumlah);
+        if (item.konfirmasi === 'Tidak Hadir') tTidak += Number(item.jumlah);
+
+        const badgeKonfir = item.konfirmasi === 'Hadir' ? `<span class="badge success"><i class="ri-check-line"></i> Hadir</span>` :
+            (item.konfirmasi === 'Tidak Hadir' ? `<span class="badge danger"><i class="ri-close-line"></i> Tidak Hadir</span>` : `<span class="badge warning">Pending</span>`);
 
         tbody.innerHTML += `
             <tr>
@@ -912,20 +892,20 @@ function renderUndangan() {
             </tr>
         `;
     });
-    
+
     document.getElementById('totalUndangan').textContent = tTotal;
     document.getElementById('totalHadir').textContent = tHadir;
     document.getElementById('totalTidakHadir').textContent = tTidak;
 }
 
 function addUndangan() {
-    if(!isLoaded) return;
+    if (!isLoaded) return;
     const nama = document.getElementById('undanganNama').value;
     const relasi = document.getElementById('undanganRelasi').value;
     const jml = document.getElementById('undanganJumlah').value;
-    
-    if(!nama) return showToast('Nama undangan wajib diisi');
-    
+
+    if (!nama) return showToast('Nama undangan wajib diisi');
+
     appState.undangan.push({
         id: generateId(),
         nama: nama,
@@ -934,19 +914,19 @@ function addUndangan() {
         dikirim: false,
         konfirmasi: 'Pending'
     });
-    
+
     document.getElementById('undanganNama').value = '';
     document.getElementById('undanganRelasi').value = '';
     document.getElementById('undanganJumlah').value = '1';
-    
+
     saveState();
     showToast('Tamu undangan ditambahkan');
 }
 
 function updateUndanganField(id, field, value) {
-    if(!isLoaded) return;
-    const item = appState.undangan.find(i => i.id === id);
-    if(item) {
+    if (!isLoaded) return;
+    const item = appState.undangan.find(i => i.id == id);
+    if (item) {
         item[field] = value;
         saveState();
     }
@@ -956,21 +936,94 @@ function updateUndanganField(id, field, value) {
 function updateProgress() {
     let totalItems = 0;
     let completedItems = 0;
-    
+
     const checklistKeys = ['persiapan', 'timeline', 'berkasCPW', 'berkasCPP', 'seserahan'];
-    
+
     checklistKeys.forEach(key => {
-        if(appState && appState[key]) {
+        if (appState && appState[key]) {
             totalItems += appState[key].length;
             completedItems += appState[key].filter(item => item.checked).length;
         }
     });
-    
+
     let percentage = 0;
-    if(totalItems > 0) {
+    if (totalItems > 0) {
         percentage = Math.round((completedItems / totalItems) * 100);
     }
-    
+
     document.getElementById('overallProgress').style.width = `${percentage}%`;
     document.getElementById('overallText').textContent = `${percentage}%`;
+}
+
+// ====== Countdown Widget ======
+function openDateModal() {
+    const modal = document.getElementById('dateModal');
+    if (modal) {
+        modal.classList.add('show');
+        const dtInput = document.getElementById('inputWeddingDateTime');
+        if (dtInput && appState && appState.weddingDate) {
+            dtInput.value = appState.weddingDate;
+        }
+    }
+}
+
+function closeDateModal() {
+    const modal = document.getElementById('dateModal');
+    if (modal) modal.classList.remove('show');
+}
+
+function saveWeddingDate() {
+    if (!isLoaded || !appState) return;
+    const dtInput = document.getElementById('inputWeddingDateTime').value;
+    appState.weddingDate = dtInput;
+    saveState();
+    closeDateModal();
+    updateCountdown();
+    showToast('Tanggal Hari H disimpan');
+}
+
+function updateCountdown() {
+    const timerDisplay = document.getElementById('countdownTimer');
+    if (!timerDisplay) return;
+
+    if (!appState || !appState.weddingDate) {
+        timerDisplay.textContent = 'Atur Tanggal';
+        return;
+    }
+
+    const targetDate = new Date(appState.weddingDate).getTime();
+
+    function calc() {
+        const now = new Date().getTime();
+        const distance = targetDate - now;
+
+        if (distance < 0) {
+            timerDisplay.textContent = 'Hari H Telah Tiba! 🎉';
+            return;
+        }
+
+        const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+        // Pad single digits
+        const h = hours < 10 ? '0' + hours : hours;
+        const m = minutes < 10 ? '0' + minutes : minutes;
+        const s = seconds < 10 ? '0' + seconds : seconds;
+
+        if (days > 0) {
+            timerDisplay.textContent = `${days}Hr ${h}:${m}:${s}`;
+        } else {
+            timerDisplay.textContent = `${h}:${m}:${s}`;
+        }
+    }
+
+    calc(); // initial call
+    // Set interval to update every second if not already running globally
+    if (!window.countdownInterval) {
+        window.countdownInterval = setInterval(() => {
+            if (appState && appState.weddingDate) calc();
+        }, 1000);
+    }
 }
