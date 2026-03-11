@@ -189,12 +189,15 @@
                     <div class="card">
                         <div class="table-responsive">
                             <table class="data-table">
-                                <thead>
                                     <tr>
                                         <th>Kategori</th>
-                                        <th>Item</th>
-                                        <th>Estimasi Biaya</th>
-                                        <th>Biaya Aktual</th>
+                                        <th>Detail Item</th>
+                                        <th>Vendor</th>
+                                        <th>Harga & Qty</th>
+                                        <th>DP & Tanggal</th>
+                                        <th>Pelunasan & Tgl</th>
+                                        <th>Total Estimasi / Aktual</th>
+                                        <th>Keterangan</th>
                                         <th>Status</th>
                                         <th>Aksi</th>
                                     </tr>
@@ -204,12 +207,69 @@
                                 </tbody>
                             </table>
                         </div>
-                        <div class="add-item-form mt-4">
-                            <input type="text" id="budgetKategori" placeholder="Kategori (cth: Venue)">
-                            <input type="text" id="budgetItem" placeholder="Nama Item">
-                            <input type="number" id="budgetEstimasi" placeholder="Estimasi (Rp)">
-                            <button onclick="addBudget()" class="btn-primary"><i class="ri-add-line"></i>
-                                Tambah</button>
+                        <div class="card mt-4" style="background: var(--bg-main); border: 1px solid var(--border);">
+                            <h3 style="font-size: 1.1rem; margin-bottom: 16px;">Tambah Budget Baru</h3>
+                            <div class="grid-3" style="gap: 16px; margin-bottom: 16px;">
+                                <div class="form-group">
+                                    <label style="font-size: 0.85rem; font-weight: 500; display: block; margin-bottom: 4px;">Kategori</label>
+                                    <select id="budgetKat" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border);">
+                                        <option value="Venue">Venue</option>
+                                        <option value="Konsumsi">Konsumsi</option>
+                                        <option value="Attire">Attire</option>
+                                        <option value="Entertainment">Entertainment</option>
+                                        <option value="Transport">Transport</option>
+                                        <option value="Seserahan">Seserahan</option>
+                                        <option value="Tamu">Tamu</option>
+                                        <option value="KUA">KUA</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label style="font-size: 0.85rem; font-weight: 500; display: block; margin-bottom: 4px;">Detail Item</label>
+                                    <input type="text" id="budgetDetail" placeholder="Nama item / layanan..." style="width: 100%;">
+                                </div>
+                                <div class="form-group">
+                                    <label style="font-size: 0.85rem; font-weight: 500; display: block; margin-bottom: 4px;">Vendor</label>
+                                    <input type="text" id="budgetVendor" placeholder="Nama Vendor..." style="width: 100%;">
+                                </div>
+                            </div>
+
+                            <div class="grid-4" style="gap: 16px; margin-bottom: 16px;">
+                                <div class="form-group">
+                                    <label style="font-size: 0.85rem; font-weight: 500; display: block; margin-bottom: 4px;">Harga per Satuan (Rp)</label>
+                                    <input type="number" id="budgetHarga" placeholder="0" style="width: 100%;">
+                                </div>
+                                <div class="form-group">
+                                    <label style="font-size: 0.85rem; font-weight: 500; display: block; margin-bottom: 4px;">Qty</label>
+                                    <input type="number" id="budgetQty" value="1" min="1" style="width: 100%;">
+                                </div>
+                                <div class="form-group">
+                                    <label style="font-size: 0.85rem; font-weight: 500; display: block; margin-bottom: 4px;">DP Dibayar (Rp)</label>
+                                    <input type="number" id="budgetDp" placeholder="0" style="width: 100%;">
+                                </div>
+                                <div class="form-group">
+                                    <label style="font-size: 0.85rem; font-weight: 500; display: block; margin-bottom: 4px;">Tanggal DP</label>
+                                    <input type="date" id="budgetDpDate" style="width: 100%;">
+                                </div>
+                            </div>
+                            
+                            <div class="grid-3" style="gap: 16px; margin-bottom: 16px;">
+                                <div class="form-group">
+                                    <label style="font-size: 0.85rem; font-weight: 500; display: block; margin-bottom: 4px;">Pelunasan Dibayar (Rp)</label>
+                                    <input type="number" id="budgetLunas" placeholder="0" style="width: 100%;">
+                                </div>
+                                <div class="form-group">
+                                    <label style="font-size: 0.85rem; font-weight: 500; display: block; margin-bottom: 4px;">Tanggal Pelunasan</label>
+                                    <input type="date" id="budgetLunasDate" style="width: 100%;">
+                                </div>
+                                <div class="form-group">
+                                    <label style="font-size: 0.85rem; font-weight: 500; display: block; margin-bottom: 4px;">Keterangan / Notes</label>
+                                    <input type="text" id="budgetKet" placeholder="Catatan tambahan..." style="width: 100%;">
+                                </div>
+                            </div>
+                            
+                            <div style="text-align: right;">
+                                <button onclick="addBudget()" class="btn-primary"><i class="ri-add-line"></i> Tambah Item Budget</button>
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -230,6 +290,17 @@
                                 </div>
                             </div>
                         </div>
+                        
+                        <div style="margin-bottom: 16px; display:flex; align-items:center; gap:12px;">
+                            <label for="filterSeserahan" style="font-weight: 500; font-size: 0.95rem;">Filter:</label>
+                            <select id="filterSeserahan" onchange="renderSeserahan()" style="padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border); font-family: inherit; width: 200px;">
+                                <option value="Semua">Semua Kategori</option>
+                                <option value="Dipakai Bersama">Dipakai Bersama</option>
+                                <option value="Dipakai Pria">Dipakai Pria</option>
+                                <option value="Dipakai Wanita">Dipakai Wanita</option>
+                            </select>
+                        </div>
+
                         <div class="table-responsive">
                             <table class="data-table">
                                 <thead>
@@ -373,6 +444,20 @@
                             </div>
                         </div>
                         <div class="stat-card">
+                            <div class="stat-icon" style="background: rgba(233, 30, 99, 0.1); color: #e91e63;"><i class="ri-women-line"></i></div>
+                            <div class="stat-info">
+                                <span>Tamu CPW</span>
+                                <h3 id="totalCpw">0</h3>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon" style="background: rgba(33, 150, 243, 0.1); color: #2196f3;"><i class="ri-men-line"></i></div>
+                            <div class="stat-info">
+                                <span>Tamu CPP</span>
+                                <h3 id="totalCpp">0</h3>
+                            </div>
+                        </div>
+                        <div class="stat-card">
                             <div class="stat-icon primary"><i class="ri-check-line"></i></div>
                             <div class="stat-info">
                                 <span>Terkonfirmasi Hadir</span>
@@ -393,6 +478,7 @@
                                 <thead>
                                     <tr>
                                         <th>Nama Tamu</th>
+                                        <th>Pihak</th>
                                         <th>Relasi</th>
                                         <th>Jml Orang</th>
                                         <th>Undangan Dikirim</th>
@@ -405,18 +491,40 @@
                                 </tbody>
                             </table>
                         </div>
-                        <div class="add-item-form mt-4 grid-4">
-                            <input type="text" id="undanganNama" placeholder="Nama Tamu">
-                            <input type="text" id="undanganRelasi" placeholder="Relasi (Keluarga/Teman Kerja)">
-                            <select id="undanganJumlah">
-                                <option value="1">1 Orang</option>
-                                <option value="2">2 Orang</option>
-                                <option value="3">3 Orang</option>
-                                <option value="4">4 Orang</option>
-                                <option value="5">5+ Orang</option>
-                            </select>
-                            <button onclick="addUndangan()" class="btn-primary"><i class="ri-add-line"></i>
-                                Tambah</button>
+                        <div class="card mt-4" style="background: var(--bg-main); border: 1px solid var(--border);">
+                            <h3 style="font-size: 1.1rem; margin-bottom: 16px;">Tambah Tamu Undangan</h3>
+                            <div class="grid-3" style="gap: 16px; margin-bottom: 16px;">
+                                <div class="form-group">
+                                    <label style="font-size: 0.85rem; font-weight: 500; display: block; margin-bottom: 4px;">Pihak Penghasil</label>
+                                    <select id="undanganPihak" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border);">
+                                        <option value="CPW">Pihak CPW</option>
+                                        <option value="CPP">Pihak CPP</option>
+                                    </select>
+                                </div>
+                                <div class="form-group" style="grid-column: span 2;">
+                                    <label style="font-size: 0.85rem; font-weight: 500; display: block; margin-bottom: 4px;">Nama Tamu</label>
+                                    <input type="text" id="undanganNama" placeholder="Ketik nama tamu di sini..." style="width: 100%;">
+                                </div>
+                            </div>
+                            <div class="grid-3" style="gap: 16px; margin-bottom: 16px; align-items: end;">
+                                <div class="form-group" style="grid-column: span 2;">
+                                    <label style="font-size: 0.85rem; font-weight: 500; display: block; margin-bottom: 4px;">Relasi (Keluarga/Teman/dsb)</label>
+                                    <input type="text" id="undanganRelasi" placeholder="Relasi Tamu..." style="width: 100%;">
+                                </div>
+                                <div class="form-group">
+                                    <label style="font-size: 0.85rem; font-weight: 500; display: block; margin-bottom: 4px;">Total Orang</label>
+                                    <select id="undanganJumlah" style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border);">
+                                        <option value="1">1 Orang</option>
+                                        <option value="2">2 Orang</option>
+                                        <option value="3">3 Orang</option>
+                                        <option value="4">4 Orang</option>
+                                        <option value="5">5+ Orang</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div style="text-align: right;">
+                                <button onclick="addUndangan()" class="btn-primary"><i class="ri-add-line"></i> Tambah Tamu</button>
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -465,7 +573,24 @@
     <!-- Notification system -->
     <div id="toast" class="toast">Data berhasil disimpan</div>
 
-    <script type="module" src="script.js?v=3"></script>
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="modal">
+        <div class="modal-content" style="max-width: 350px;">
+            <div class="modal-header" style="border-bottom: none; padding-bottom: 0;">
+                <h3 style="color: var(--danger);"><i class="ri-error-warning-line"></i> Konfirmasi Hapus</h3>
+                <button class="close-btn" id="closeDeleteModalBtn"><i class="ri-close-line"></i></button>
+            </div>
+            <div class="modal-body">
+                <p>Apakah Anda yakin ingin menghapus data ini? Tindakan ini tidak dapat dibatalkan.</p>
+            </div>
+            <div class="modal-footer" style="border-top: none;">
+                <button class="btn-secondary" id="cancelDeleteBtn">Batal</button>
+                <button class="btn-primary" id="confirmDeleteBtn" style="background-color: var(--danger); border-color: var(--danger);">Ya, Hapus</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="script.js?v=7"></script>
 </body>
 
 </html>

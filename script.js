@@ -58,6 +58,9 @@ let isLoaded = false; // flag to prevent flashing empty UI
 let currentEditStateKey = null;
 let currentEditId = null;
 
+let currentDeleteStateKey = null;
+let currentDeleteId = null;
+
 // Listen to Firebase Realtime Database
 onValue(ref(db, 'weddingTrackerData'), (snapshot) => {
     const data = snapshot.val();
@@ -152,20 +155,20 @@ document.addEventListener('DOMContentLoaded', () => {
     // Mobile Sidebar Toggle
     const sidebar = document.getElementById('sidebar');
     const sidebarOverlay = document.getElementById('sidebarOverlay');
-    
+
     function filterMobileToggle(open) {
-        if(open) {
+        if (open) {
             sidebar.classList.add('open');
-            if(sidebarOverlay) sidebarOverlay.classList.add('show');
+            if (sidebarOverlay) sidebarOverlay.classList.add('show');
         } else {
             sidebar.classList.remove('open');
-            if(sidebarOverlay) sidebarOverlay.classList.remove('show');
+            if (sidebarOverlay) sidebarOverlay.classList.remove('show');
         }
     }
 
     document.getElementById('mobileToggle').addEventListener('click', () => filterMobileToggle(true));
     document.getElementById('mobileClose').addEventListener('click', () => filterMobileToggle(false));
-    if(sidebarOverlay) {
+    if (sidebarOverlay) {
         sidebarOverlay.addEventListener('click', () => filterMobileToggle(false));
     }
 
@@ -207,6 +210,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const saveModalBtn = document.getElementById('saveModalBtn');
     if (saveModalBtn) saveModalBtn.addEventListener('click', saveEditedItem);
+
+    // Delete Modal Logic
+    const deleteModal = document.getElementById('deleteModal');
+    const closeDeleteBtns = [document.getElementById('closeDeleteModalBtn'), document.getElementById('cancelDeleteBtn')];
+
+    closeDeleteBtns.forEach(btn => {
+        if (btn) btn.addEventListener('click', closeDeleteModal);
+    });
+
+    window.addEventListener('click', (e) => {
+        if (e.target === deleteModal) {
+            closeDeleteModal();
+        }
+    });
+
+    const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+    if (confirmDeleteBtn) confirmDeleteBtn.addEventListener('click', confirmDelete);
 });
 
 function closeEditModal() {
@@ -216,14 +236,22 @@ function closeEditModal() {
     currentEditId = null;
 }
 
+function closeDeleteModal() {
+    const deleteModal = document.getElementById('deleteModal');
+    if (deleteModal) deleteModal.classList.remove('show');
+    currentDeleteStateKey = null;
+    currentDeleteId = null;
+}
+
 // ====== EXPORT GLOBALLY FOR HTML ONCLICK COMPATIBILITY ======
 window.addItem = addItem;
 window.deleteItem = deleteItem;
+window.confirmDelete = confirmDelete;
+window.closeDeleteModal = closeDeleteModal;
 window.editItem = editItem;
 window.toggleCheck = toggleCheck;
 window.addTimelineTask = addTimelineTask;
 window.addBudget = addBudget;
-window.updateBiayaAktual = updateBiayaAktual;
 window.addSeserahan = addSeserahan;
 window.addVendor = addVendor;
 window.pindahFinal = pindahFinal;
@@ -239,6 +267,7 @@ window.closeDateModal = closeDateModal;
 window.saveWeddingDate = saveWeddingDate;
 window.updateCountdown = updateCountdown;
 window.editGlobalLink = editGlobalLink;
+window.renderSeserahan = renderSeserahan;
 
 // ====== Render Functions ======
 
@@ -316,7 +345,14 @@ function renderTimeline() {
     const container = document.getElementById('timelineContainer');
     container.innerHTML = '';
 
-    const grouped = appState.timeline.reduce((acc, curr) => {
+    // Sort timeline by the numerical value inside the month string descending (e.g., 12 > 11 > 10)
+    const sortedTimeline = [...appState.timeline].sort((a, b) => {
+        const numA = parseInt((a.month.match(/\d+/) || [0])[0]);
+        const numB = parseInt((b.month.match(/\d+/) || [0])[0]);
+        return numB - numA;
+    });
+
+    const grouped = sortedTimeline.reduce((acc, curr) => {
         if (!acc[curr.month]) acc[curr.month] = [];
         acc[curr.month].push(curr);
         return acc;
@@ -381,12 +417,20 @@ function toggleCheck(stateKey, id) {
 
 function deleteItem(stateKey, id) {
     if (!isLoaded) return;
-    if (confirm('Hapus item ini?')) {
-        appState[stateKey] = appState[stateKey].filter(item => item.id != id);
-        saveState();
-        renderAll();
-        showToast('Item dihapus');
-    }
+    currentDeleteStateKey = stateKey;
+    currentDeleteId = id;
+    const deleteModal = document.getElementById('deleteModal');
+    if (deleteModal) deleteModal.classList.add('show');
+}
+
+function confirmDelete() {
+    if (!isLoaded || !currentDeleteStateKey || currentDeleteId === null) return;
+    
+    appState[currentDeleteStateKey] = appState[currentDeleteStateKey].filter(item => item.id != currentDeleteId);
+    saveState();
+    renderAll();
+    showToast('Item dihapus');
+    closeDeleteModal();
 }
 
 function editItem(stateKey, id) {
@@ -439,18 +483,60 @@ function editItem(stateKey, id) {
             `;
             break;
         case 'budget':
+            const kats = ['Venue', 'Konsumsi', 'Attire', 'Entertainment', 'Transport', 'Seserahan', 'Tamu', 'KUA'];
+            const katOptions = kats.map(k => `<option value="${k}" ${item.kategori === k ? 'selected' : ''}>${k}</option>`).join('');
+            
             html = `
-                <div class="form-group">
-                    <label>Kategori</label>
-                    <input type="text" id="editBudKategori" value="${item.kategori}">
+                <div class="grid-2" style="gap:12px;">
+                    <div class="form-group">
+                        <label>Kategori</label>
+                        <select id="editBudKategori" style="width:100%; padding:8px; border-radius:6px; border:1px solid var(--border);">
+                            ${katOptions}
+                            ${!kats.includes(item.kategori) && item.kategori ? `<option value="${item.kategori}" selected>${item.kategori}</option>` : ''}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Detail Item</label>
+                        <input type="text" id="editBudItem" value="${item.item || ''}" style="width:100%;">
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>Item</label>
-                    <input type="text" id="editBudItem" value="${item.item}">
+                <div class="form-group" style="margin-top:12px;">
+                    <label>Vendor</label>
+                    <input type="text" id="editBudVendor" value="${item.vendor || ''}" style="width:100%;">
                 </div>
-                <div class="form-group">
-                    <label>Estimasi Biaya (Rp)</label>
-                    <input type="number" id="editBudEst" value="${item.estimasi}">
+                <div class="grid-2" style="gap:12px; margin-top:12px;">
+                    <div class="form-group">
+                        <label>Harga Satuan (Rp)</label>
+                        <input type="number" id="editBudHarga" value="${item.harga || item.estimasi || 0}" style="width:100%;">
+                    </div>
+                    <div class="form-group">
+                        <label>Qty</label>
+                        <input type="number" id="editBudQty" value="${item.qty || 1}" min="1" style="width:100%;">
+                    </div>
+                </div>
+                <div class="grid-2" style="gap:12px; margin-top:12px;">
+                    <div class="form-group">
+                        <label>DP Dibayar (Rp)</label>
+                        <input type="number" id="editBudDp" value="${item.dpAkhir || 0}" style="width:100%;">
+                    </div>
+                    <div class="form-group">
+                        <label>Tanggal DP</label>
+                        <input type="date" id="editBudDpDate" value="${item.dpDate || ''}" style="width:100%;">
+                    </div>
+                </div>
+                <div class="grid-2" style="gap:12px; margin-top:12px;">
+                    <div class="form-group">
+                        <label>Pelunasan (Rp)</label>
+                        <input type="number" id="editBudLunas" value="${item.lunasAkhir || (item.aktual && !item.dpAkhir && !item.lunasAkhir ? item.aktual : 0)}" style="width:100%;">
+                    </div>
+                    <div class="form-group">
+                        <label>Tanggal Lunas</label>
+                        <input type="date" id="editBudLunasDate" value="${item.lunasDate || ''}" style="width:100%;">
+                    </div>
+                </div>
+                <div class="form-group" style="margin-top:12px;">
+                    <label>Keterangan</label>
+                    <input type="text" id="editBudKet" value="${item.keterangan || ''}" style="width:100%;">
                 </div>
             `;
             break;
@@ -500,10 +586,10 @@ function editItem(stateKey, id) {
             `;
             break;
         case 'jobdesk':
-            const vendorOptions = appState.vendorFinal.map(v => 
+            const vendorOptions = appState.vendorFinal.map(v =>
                 `<option value="${v.nama}" ${item.vendor === v.nama ? 'selected' : ''}>${v.nama}</option>`
             ).join('');
-            
+
             html = `
                 <div class="form-group">
                     <label>Vendor/Divisi</label>
@@ -535,17 +621,28 @@ function editItem(stateKey, id) {
             break;
         case 'undangan':
             html = `
-                <div class="form-group">
-                    <label>Nama Tamu</label>
-                    <input type="text" id="editUndNama" value="${item.nama}">
+                <div class="grid-2" style="gap:12px;">
+                    <div class="form-group">
+                        <label>Nama Tamu</label>
+                        <input type="text" id="editUndNama" value="${item.nama}">
+                    </div>
+                    <div class="form-group">
+                        <label>Pihak</label>
+                        <select id="editUndPihak" style="width:100%; padding:8px; border-radius:6px; border:1px solid var(--border);">
+                            <option value="CPW" ${item.pihak === 'CPW' ? 'selected' : ''}>Pihak CPW</option>
+                            <option value="CPP" ${item.pihak === 'CPP' ? 'selected' : ''}>Pihak CPP</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>Relasi</label>
-                    <input type="text" id="editUndRelasi" value="${item.relasi || ''}">
-                </div>
-                <div class="form-group">
-                    <label>Jumlah Orang</label>
-                    <input type="number" id="editUndJumlah" value="${item.jumlah}">
+                <div class="grid-2" style="gap:12px; margin-top:12px;">
+                    <div class="form-group">
+                        <label>Relasi</label>
+                        <input type="text" id="editUndRelasi" value="${item.relasi || ''}">
+                    </div>
+                    <div class="form-group">
+                        <label>Jumlah Orang</label>
+                        <input type="number" id="editUndJumlah" value="${item.jumlah}" min="1">
+                    </div>
                 </div>
             `;
             break;
@@ -578,7 +675,18 @@ function saveEditedItem() {
             case 'budget':
                 item.kategori = document.getElementById('editBudKategori').value.trim() || item.kategori;
                 item.item = document.getElementById('editBudItem').value.trim() || item.item;
-                item.estimasi = document.getElementById('editBudEst').value || item.estimasi;
+                item.vendor = document.getElementById('editBudVendor').value.trim();
+                item.harga = Number(document.getElementById('editBudHarga').value) || item.harga || item.estimasi || 0;
+                item.qty = Number(document.getElementById('editBudQty').value) || item.qty || 1;
+                item.dpAkhir = Number(document.getElementById('editBudDp').value) || 0;
+                item.dpDate = document.getElementById('editBudDpDate').value;
+                item.lunasAkhir = Number(document.getElementById('editBudLunas').value) || 0;
+                item.lunasDate = document.getElementById('editBudLunasDate').value;
+                item.keterangan = document.getElementById('editBudKet').value.trim();
+                
+                // cleanup legacy fields so they don't corrupt the logic later
+                if(item.estimasi) delete item.estimasi;
+                if(item.aktual) delete item.aktual;
                 break;
             case 'seserahan':
                 item.kategori = document.getElementById('editSesKat').value.trim() || item.kategori;
@@ -604,6 +712,7 @@ function saveEditedItem() {
                 break;
             case 'undangan':
                 item.nama = document.getElementById('editUndNama').value.trim() || item.nama;
+                item.pihak = document.getElementById('editUndPihak').value.trim() || 'CPW';
                 item.relasi = document.getElementById('editUndRelasi').value.trim();
                 item.jumlah = document.getElementById('editUndJumlah').value || item.jumlah;
                 break;
@@ -667,7 +776,7 @@ function editGlobalLink(key) {
     const currentLink = appState[key] || '';
     const name = key === 'berkasCPWLink' ? 'CPW' : 'CPP';
     const newLink = prompt(`Masukkan Link Google Drive untuk Berkas ${name}:`, currentLink);
-    
+
     if (newLink !== null) {
         appState[key] = newLink.trim();
         saveState();
@@ -679,7 +788,7 @@ function editGlobalLink(key) {
 function renderGlobalLinks() {
     const cpw = document.getElementById('linkCPWDisplay');
     const cpp = document.getElementById('linkCPPDisplay');
-    
+
     if (cpw) {
         if (appState.berkasCPWLink) {
             cpw.href = appState.berkasCPWLink;
@@ -688,7 +797,7 @@ function renderGlobalLinks() {
             cpw.style.display = 'none';
         }
     }
-    
+
     if (cpp) {
         if (appState.berkasCPPLink) {
             cpp.href = appState.berkasCPPLink;
@@ -712,24 +821,48 @@ function renderBudget() {
     let tAktual = 0;
 
     appState.budget.forEach(item => {
-        tEstimasi += Number(item.estimasi);
-        tAktual += Number(item.aktual);
+        // Fallbacks for older data schemas
+        const harga = item.harga || item.estimasi || 0;
+        const qty = item.qty || 1;
+        const dpAkhir = item.dpAkhir || 0;
+        const lunasAkhir = item.lunasAkhir || 0;
+        // if user had older 'aktual' value we can add it to lunasAkhir for backwards compat
+        const legacyAktual = item.aktual && !item.dpAkhir && !item.lunasAkhir ? Number(item.aktual) : 0; 
+        
+        const subtotalEstimasi = Number(harga) * Number(qty);
+        const subtotalAktual = Number(dpAkhir) + Number(lunasAkhir) + legacyAktual;
 
-        let statusBadge = item.aktual > 0 ? `<span class="badge success">Sudah Dibayar</span>` : `<span class="badge warning">Belum Dibayar</span>`;
-        if (item.aktual > 0 && item.aktual < item.estimasi) {
+        tEstimasi += subtotalEstimasi;
+        tAktual += subtotalAktual;
+
+        let statusBadge = `<span class="badge warning">Belum Dibayar</span>`;
+        if (subtotalAktual > 0 && subtotalAktual < subtotalEstimasi) {
             statusBadge = `<span class="badge primary">DP / Sebagian</span>`;
-        } else if (item.aktual > item.estimasi) {
-            statusBadge = `<span class="badge danger">Overbudget</span>`;
+        } else if (subtotalAktual >= subtotalEstimasi && subtotalEstimasi > 0) {
+            statusBadge = `<span class="badge success">Lunas</span>`;
         }
 
         tbody.innerHTML += `
             <tr>
-                <td><strong>${item.kategori}</strong></td>
-                <td>${item.item}</td>
-                <td>${formatRp(item.estimasi)}</td>
+                <td><span class="badge" style="background:var(--bg-main); border:1px solid var(--border); color:var(--text-main); font-weight:500;">${item.kategori || '-'}</span></td>
+                <td><strong>${item.item || '-'}</strong></td>
+                <td>${item.vendor || '-'}</td>
                 <td>
-                    <input type="number" value="${item.aktual}" onchange="updateBiayaAktual(${item.id}, this.value)" style="width: 120px; padding: 6px; font-size: 0.85rem;">
+                    <div style="font-size:0.85rem;">${formatRp(harga)} x ${qty}</div>
                 </td>
+                <td>
+                    <div style="font-weight:600; color:var(--text-main);">${formatRp(dpAkhir)}</div>
+                    <div style="font-size:0.8rem; color:var(--text-muted);">${item.dpDate || '-'}</div>
+                </td>
+                <td>
+                    <div style="font-weight:600; color:var(--text-main);">${formatRp(lunasAkhir + legacyAktual)}</div>
+                    <div style="font-size:0.8rem; color:var(--text-muted);">${item.lunasDate || '-'}</div>
+                </td>
+                <td>
+                    <div style="font-size:0.8rem; color:var(--text-muted);">Est: ${formatRp(subtotalEstimasi)}</div>
+                    <div style="font-weight:600; color:var(--primary); margin-top:4px;">Akt: ${formatRp(subtotalAktual)}</div>
+                </td>
+                <td style="font-size:0.85rem; max-width:150px;">${item.keterangan || '-'}</td>
                 <td>${statusBadge}</td>
                 <td>
                     <div style="display: flex; gap: 4px;">
@@ -748,37 +881,54 @@ function renderBudget() {
 
 function addBudget() {
     if (!isLoaded) return;
-    const kat = document.getElementById('budgetKategori').value;
-    const item = document.getElementById('budgetItem').value;
-    const est = document.getElementById('budgetEstimasi').value;
+    const kategori = document.getElementById('budgetKat').value;
+    const item = document.getElementById('budgetDetail').value;
+    const vendor = document.getElementById('budgetVendor').value;
+    const harga = document.getElementById('budgetHarga').value || 0;
+    const qty = document.getElementById('budgetQty').value || 1;
+    const dp = document.getElementById('budgetDp').value || 0;
+    const dpDate = document.getElementById('budgetDpDate').value;
+    const lunas = document.getElementById('budgetLunas').value || 0;
+    const lunasDate = document.getElementById('budgetLunasDate').value;
+    const ket = document.getElementById('budgetKet').value;
 
-    if (!kat || !item || !est) return showToast('Lengkapi semua data budget');
+    if (!item || !harga) return showToast('Detail Item dan Harga per Satuan wajib diisi');
 
     appState.budget.push({
         id: generateId(),
-        kategori: kat,
+        kategori: kategori,
         item: item,
-        estimasi: est,
-        aktual: 0
+        vendor: vendor,
+        harga: Number(harga),
+        qty: Number(qty),
+        dpAkhir: Number(dp),
+        dpDate: dpDate,
+        lunasAkhir: Number(lunas),
+        lunasDate: lunasDate,
+        keterangan: ket
     });
 
-    document.getElementById('budgetKategori').value = '';
-    document.getElementById('budgetItem').value = '';
-    document.getElementById('budgetEstimasi').value = '';
+    document.getElementById('budgetKat').value = 'Venue';
+    document.getElementById('budgetDetail').value = '';
+    document.getElementById('budgetVendor').value = '';
+    document.getElementById('budgetHarga').value = '';
+    document.getElementById('budgetQty').value = '1';
+    document.getElementById('budgetDp').value = '';
+    document.getElementById('budgetDpDate').value = '';
+    document.getElementById('budgetLunas').value = '';
+    document.getElementById('budgetLunasDate').value = '';
+    document.getElementById('budgetKet').value = '';
 
     saveState();
+    renderAll();
     showToast('Budget ditambahkan');
 }
 
+// Deprecated function left for backwards HTML compatibility
 function updateBiayaAktual(id, value) {
-    if (!isLoaded) return;
-    const item = appState.budget.find(i => i.id == id);
-    if (item) {
-        item.aktual = value;
-        saveState();
-        showToast('Biaya aktual diupdate');
-    }
+    console.warn("Legacy updateBiayaAktual called. Expected to be unused in V2 template.");
 }
+window.updateBiayaAktual = updateBiayaAktual;
 
 // 5. Checklist Seserahan
 function renderSeserahan() {
@@ -786,8 +936,16 @@ function renderSeserahan() {
     tbody.innerHTML = '';
     let totalHarga = 0;
 
+    // Apply filter if available
+    const filterElement = document.getElementById('filterSeserahan');
+    const filterValue = filterElement ? filterElement.value : 'Semua';
+
     // Sort by kategori so they cluster together conceptually
-    const sorted = [...appState.seserahan].sort((a, b) => (a.kategori || '').localeCompare(b.kategori || ''));
+    let sorted = [...appState.seserahan].sort((a, b) => (a.kategori || '').localeCompare(b.kategori || ''));
+
+    if (filterValue !== 'Semua') {
+        sorted = sorted.filter(item => item.kategori === filterValue);
+    }
 
     sorted.forEach(item => {
         totalHarga += Number(item.harga || 0);
@@ -889,10 +1047,10 @@ function renderVendor(stateKey, elementId) {
 function populateJobdeskVendorSelect() {
     const select = document.getElementById('jobdeskVendor');
     if (!select || !appState) return;
-    
+
     // Store current selection to restore if it still exists
     const currentVal = select.value;
-    
+
     let html = '<option value="">-- Pilih Vendor --</option>';
     if (appState.vendorFinal) {
         appState.vendorFinal.forEach(v => {
@@ -900,7 +1058,7 @@ function populateJobdeskVendorSelect() {
         });
     }
     select.innerHTML = html;
-    
+
     if (currentVal && appState.vendorFinal && appState.vendorFinal.some(v => v.nama === currentVal)) {
         select.value = currentVal;
     }
@@ -1079,11 +1237,24 @@ function renderUndangan() {
     let tTotal = 0;
     let tHadir = 0;
     let tTidak = 0;
+    let tCpw = 0;
+    let tCpp = 0;
 
     appState.undangan.forEach(item => {
-        tTotal += Number(item.jumlah);
-        if (item.konfirmasi === 'Hadir') tHadir += Number(item.jumlah);
-        if (item.konfirmasi === 'Tidak Hadir') tTidak += Number(item.jumlah);
+        const qty = Number(item.jumlah);
+        tTotal += qty;
+        
+        // Count pihak
+        const pihak = item.pihak || 'CPW'; // Default if null for old data
+        if (pihak === 'CPW') tCpw += qty;
+        if (pihak === 'CPP') tCpp += qty;
+
+        if (item.konfirmasi === 'Hadir') tHadir += qty;
+        if (item.konfirmasi === 'Tidak Hadir') tTidak += qty;
+
+        const badgePihak = pihak === 'CPW' 
+            ? `<span class="badge" style="background: rgba(233, 30, 99, 0.1); color: #e91e63;">CPW</span>` 
+            : `<span class="badge" style="background: rgba(33, 150, 243, 0.1); color: #2196f3;">CPP</span>`;
 
         const badgeKonfir = item.konfirmasi === 'Hadir' ? `<span class="badge success"><i class="ri-check-line"></i> Hadir</span>` :
             (item.konfirmasi === 'Tidak Hadir' ? `<span class="badge danger"><i class="ri-close-line"></i> Tidak Hadir</span>` : `<span class="badge warning">Pending</span>`);
@@ -1091,6 +1262,7 @@ function renderUndangan() {
         tbody.innerHTML += `
             <tr>
                 <td><strong>${item.nama}</strong></td>
+                <td>${badgePihak}</td>
                 <td><span class="badge primary">${item.relasi}</span></td>
                 <td>${item.jumlah} Orang</td>
                 <td>
@@ -1116,11 +1288,16 @@ function renderUndangan() {
     document.getElementById('totalUndangan').textContent = tTotal;
     document.getElementById('totalHadir').textContent = tHadir;
     document.getElementById('totalTidakHadir').textContent = tTidak;
+    const cwEl = document.getElementById('totalCpw');
+    if(cwEl) cwEl.textContent = tCpw;
+    const cpEl = document.getElementById('totalCpp');
+    if(cpEl) cpEl.textContent = tCpp;
 }
 
 function addUndangan() {
     if (!isLoaded) return;
     const nama = document.getElementById('undanganNama').value;
+    const pihak = document.getElementById('undanganPihak').value;
     const relasi = document.getElementById('undanganRelasi').value;
     const jml = document.getElementById('undanganJumlah').value;
 
@@ -1129,6 +1306,7 @@ function addUndangan() {
     appState.undangan.push({
         id: generateId(),
         nama: nama,
+        pihak: pihak,
         relasi: relasi || 'Umum',
         jumlah: jml,
         dikirim: false,
@@ -1136,6 +1314,7 @@ function addUndangan() {
     });
 
     document.getElementById('undanganNama').value = '';
+    document.getElementById('undanganPihak').value = 'CPW';
     document.getElementById('undanganRelasi').value = '';
     document.getElementById('undanganJumlah').value = '1';
 
