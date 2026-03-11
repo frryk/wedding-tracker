@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wedding Preparation Tracker</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.2.0/fonts/remixicon.css" rel="stylesheet" />
+    <link rel="stylesheet" href="style.css?v=2">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h2><i class="ri-heart-pulse-fill icon-accent"></i>Anita & Ferry</h2>
+                <button class="mobile-close" id="mobileClose"><i class="ri-close-line"></i></button>
+            </div>
+
+            <nav class="sidebar-nav">
+                <button class="nav-btn active" data-target="persiapan"><i class="ri-list-check-2"></i> Persiapan
+                    Menikah</button>
+                <button class="nav-btn" data-target="timeline"><i class="ri-calendar-event-line"></i> Timeline
+                    Persiapan</button>
+                <button class="nav-btn" data-target="berkas"><i class="ri-folder-info-line"></i> Berkas KUA</button>
+                <button class="nav-btn" data-target="budget"><i class="ri-wallet-3-line"></i> Budget Nikah</button>
+                <button class="nav-btn" data-target="seserahan"><i class="ri-gift-line"></i> Checklist
+                    Seserahan</button>
+                <button class="nav-btn" data-target="vendor"><i class="ri-store-2-line"></i> List Vendor</button>
+                <button class="nav-btn" data-target="jobdesk"><i class="ri-task-line"></i> Job Desk Vendor</button>
+                <button class="nav-btn" data-target="catering"><i class="ri-restaurant-line"></i> List Catering</button>
+                <button class="nav-btn" data-target="undangan"><i class="ri-mail-send-line"></i> List Undangan</button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="progress-widget">
+                    <span class="progress-title">Overall Progress</span>
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar-fill" id="overallProgress" style="width: 0%"></div>
+                    </div>
+                    <span class="progress-text" id="overallText">0%</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="topbar">
+                <button class="mobile-toggle" id="mobileToggle"><i class="ri-menu-2-line"></i></button>
+                <h1 id="pageTitle" class="animate-fade-in">Persiapan Menikah</h1>
+                <div class="header-actions">
+                    <button class="icon-btn" id="themeToggle" title="Toggle Dark Mode"><i
+                            class="ri-moon-line"></i></button>
+                </div>
+            </header>
+
+            <div class="content-wrapper">
+
+                <!-- 1. Persiapan Menikah -->
+                <section id="persiapan" class="tab-content active animate-fade-up">
+                    <div class="card header-card">
+                        <h2>Persiapan Pokok</h2>
+                        <p>Daftar kebutuhan utama pernikahan seperti Mahar, Cincin, Seserahan dan lainnya.</p>
+                    </div>
+                    <div class="card list-container">
+                        <ul class="todo-list" id="listPersiapan">
+                            <!-- Items populated by JS -->
+                        </ul>
+                        <div class="add-item-form grid-4">
+                            <input type="text" id="inputPersiapanTitle" placeholder="Kebutuhan (cth: Cincin Nikah)">
+                            <input type="text" id="inputPersiapanDesc" placeholder="Keterangan / Detail...">
+                            <input type="url" id="inputPersiapanLink" placeholder="Link Referensi (Opsional)">
+                            <button onclick="addItem('persiapan')" class="btn-primary"><i class="ri-add-line"></i>
+                                Tambah</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 2. Timeline Persiapan -->
+                <section id="timeline" class="tab-content animate-fade-up">
+                    <div class="card header-card">
+                        <h2>Timeline Persiapan Menikah</h2>
+                        <p>Jadwal dan to-do list per bulan untuk persiapan dari awal hingga hari H.</p>
+                    </div>
+                    <div class="timeline-container" id="timelineContainer">
+                        <!-- Populated by JS -->
+                    </div>
+                    <div class="card add-timeline-card">
+                        <h3>Tambah Timeline Baru</h3>
+                        <div class="add-item-form">
+                            <select id="inputTimelineMonth">
+                                <option value="Bulan 12-10 Sebelum H">Bulan 12-10 Sebelum H</option>
+                                <option value="Bulan 9-6 Sebelum H">Bulan 9-6 Sebelum H</option>
+                                <option value="Bulan 5-4 Sebelum H">Bulan 5-4 Sebelum H</option>
+                                <option value="Bulan 3-2 Sebelum H">Bulan 3-2 Sebelum H</option>
+                                <option value="Bulan 1 Sebelum H">Bulan 1 Sebelum H</option>
+                                <option value="Hari H">Hari H</option>
+                            </select>
+                            <input type="text" id="inputTimelineTask" placeholder="Tugas Persiapan">
+                            <button onclick="addTimelineTask()" class="btn-primary"><i class="ri-add-line"></i>
+                                Tambah</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 3. Berkas KUA -->
+                <section id="berkas" class="tab-content animate-fade-up">
+                    <div class="card header-card">
+                        <h2>Berkas KUA</h2>
+                        <p>Checklist berkas pernikahan untuk CPW (Calon Pengantin Wanita) dan CPP (Calon Pengantin
+                            Pria).</p>
+                    </div>
+                    <div class="grid-2">
+                        <div class="card list-container">
+                            <h3 class="accent-title"><i class="ri-women-line"></i> Berkas CPW</h3>
+                            <ul class="todo-list" id="listBerkasCPW">
+                                <!-- Populated by JS -->
+                            </ul>
+                            <div class="add-item-form compact">
+                                <input type="text" id="inputBerkasCPW" placeholder="Tambah Berkas CPW...">
+                                <button onclick="addSimpleItem('listBerkasCPW', 'inputBerkasCPW')"
+                                    class="btn-secondary"><i class="ri-add-line"></i></button>
+                            </div>
+                        </div>
+                        <div class="card list-container">
+                            <h3 class="accent-title"><i class="ri-men-line"></i> Berkas CPP</h3>
+                            <ul class="todo-list" id="listBerkasCPP">
+                                <!-- Populated by JS -->
+                            </ul>
+                            <div class="add-item-form compact">
+                                <input type="text" id="inputBerkasCPP" placeholder="Tambah Berkas CPP...">
+                                <button onclick="addSimpleItem('listBerkasCPP', 'inputBerkasCPP')"
+                                    class="btn-secondary"><i class="ri-add-line"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 4. Budget Nikah -->
+                <section id="budget" class="tab-content animate-fade-up">
+                    <div class="card header-card">
+                        <h2>Budget Pernikahan</h2>
+                        <p>Rincian estimasi biaya dan pengeluaran aktual.</p>
+                    </div>
+                    <div class="budget-summary grid-3 mb-4">
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="ri-wallet-3-line"></i></div>
+                            <div class="stat-info">
+                                <span>Total Estimasi</span>
+                                <h3 id="totalEstimasi">Rp 0</h3>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon primary"><i class="ri-money-dollar-circle-line"></i></div>
+                            <div class="stat-info">
+                                <span>Total Aktual</span>
+                                <h3 id="totalTerpakai">Rp 0</h3>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon warning"><i class="ri-funds-line"></i></div>
+                            <div class="stat-info">
+                                <span>Sisa Budget (Estimasi - Aktual)</span>
+                                <h3 id="sisaBudget">Rp 0</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Kategori</th>
+                                        <th>Item</th>
+                                        <th>Estimasi Biaya</th>
+                                        <th>Biaya Aktual</th>
+                                        <th>Status</th>
+                                        <th>Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tableBudget">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="add-item-form mt-4">
+                            <input type="text" id="budgetKategori" placeholder="Kategori (cth: Venue)">
+                            <input type="text" id="budgetItem" placeholder="Nama Item">
+                            <input type="number" id="budgetEstimasi" placeholder="Estimasi (Rp)">
+                            <button onclick="addBudget()" class="btn-primary"><i class="ri-add-line"></i>
+                                Tambah</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 5. Checklist Seserahan -->
+                <section id="seserahan" class="tab-content animate-fade-up">
+                    <div class="card header-card">
+                        <h2>Checklist Seserahan</h2>
+                        <p>Daftar barang seserahan beserta brand dan harga.</p>
+                    </div>
+                    <div class="card">
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th width="50">Status</th>
+                                        <th>Item Seserahan</th>
+                                        <th>Brand/Merk</th>
+                                        <th>Harga (Rp)</th>
+                                        <th>Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tableSeserahan">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="add-item-form mt-4 grid-4">
+                            <input type="text" id="seserahanItem" placeholder="Nama Item (cth: Sepatu)">
+                            <input type="text" id="seserahanBrand" placeholder="Brand/Merk">
+                            <input type="number" id="seserahanHarga" placeholder="Harga (Rp)">
+                            <button onclick="addSeserahan()" class="btn-primary"><i class="ri-add-line"></i>
+                                Tambah</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 6. List Vendor -->
+                <section id="vendor" class="tab-content animate-fade-up">
+                    <div class="card header-card">
+                        <h2>List Vendor</h2>
+                        <p>Kandidat vendor yang diseleksi dan pilihan final.</p>
+                    </div>
+                    <div class="grid-2">
+                        <div class="card">
+                            <h3 class="accent-title"><i class="ri-search-line"></i> Vendor Kandidat</h3>
+                            <ul class="vendor-list" id="listVendorSeleksi">
+                                <!-- Populated by JS -->
+                            </ul>
+                            <div class="add-item-form compact mt-3">
+                                <input type="text" id="inputVendorKategori" placeholder="Kategori">
+                                <input type="text" id="inputVendorNama" placeholder="Nama Vendor">
+                                <button onclick="addVendor('seleksi')" class="btn-secondary"><i
+                                        class="ri-add-line"></i></button>
+                            </div>
+                        </div>
+                        <div class="card border-primary">
+                            <h3 class="accent-title primary-color"><i class="ri-check-double-line"></i> Vendor Terpilih
+                            </h3>
+                            <ul class="vendor-list" id="listVendorFinal">
+                                <!-- Populated by JS -->
+                            </ul>
+                            <div class="add-item-form compact mt-3">
+                                <input type="text" id="inputVendorKategoriFinal" placeholder="Kategori">
+                                <input type="text" id="inputVendorNamaFinal" placeholder="Nama Vendor Final">
+                                <button onclick="addVendor('final')" class="btn-primary"><i
+                                        class="ri-add-line"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 7. Job Desk Vendor -->
+                <section id="jobdesk" class="tab-content animate-fade-up">
+                    <div class="card header-card">
+                        <h2>Job Desk Vendor</h2>
+                        <p>Rincian tugas dan tanggung jawab vendor pada saat acara resepsi.</p>
+                    </div>
+                    <div class="jobdesk-container" id="jobdeskContainer">
+                        <!-- Populated by JS -->
+                    </div>
+                    <div class="card add-timeline-card mt-4">
+                        <h3>Tambah Tugas Baru</h3>
+                        <div class="add-item-form">
+                            <input type="text" id="jobdeskVendor" placeholder="Vendor / Divisi (cth: WO, Fotografer)">
+                            <input type="text" id="jobdeskTugas" placeholder="Rincian Tugas...">
+                            <button onclick="addJobdesk()" class="btn-primary"><i class="ri-add-line"></i>
+                                Tambah</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 8. List Catering/Resto -->
+                <section id="catering" class="tab-content animate-fade-up">
+                    <div class="card header-card">
+                        <h2>List Catering / Resto</h2>
+                        <p>Daftar kandidat vendor catering beserta paket dan status test food.</p>
+                    </div>
+                    <div class="card">
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Nama Catering</th>
+                                        <th>Paket / Menu</th>
+                                        <th>Harga (Rp)</th>
+                                        <th>Test Food</th>
+                                        <th>Keputusan</th>
+                                        <th>Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tableCatering">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="add-item-form mt-4 grid-4">
+                            <input type="text" id="cateringNama" placeholder="Nama Catering">
+                            <input type="text" id="cateringPaket" placeholder="Paket (cth: 500 Porsi Piring Terbang)">
+                            <input type="number" id="cateringHarga" placeholder="Harga Estimasi">
+                            <button onclick="addCatering()" class="btn-primary"><i class="ri-add-line"></i>
+                                Tambah</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 9. List Undangan -->
+                <section id="undangan" class="tab-content animate-fade-up">
+                    <div class="card header-card">
+                        <h2>List Undangan</h2>
+                        <p>Daftar tamu undangan beserta status kehadirannya.</p>
+                    </div>
+                    <div class="budget-summary grid-3 mb-4">
+                        <div class="stat-card">
+                            <div class="stat-icon"><i class="ri-mail-open-line"></i></div>
+                            <div class="stat-info">
+                                <span>Total Tamu/Keluarga</span>
+                                <h3 id="totalUndangan">0</h3>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon primary"><i class="ri-check-line"></i></div>
+                            <div class="stat-info">
+                                <span>Terkonfirmasi Hadir</span>
+                                <h3 id="totalHadir">0</h3>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon warning"><i class="ri-close-line"></i></div>
+                            <div class="stat-info">
+                                <span>Tidak Hadir</span>
+                                <h3 id="totalTidakHadir">0</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Nama Tamu</th>
+                                        <th>Relasi</th>
+                                        <th>Jml Orang</th>
+                                        <th>Undangan Dikirim</th>
+                                        <th>Konfirmasi</th>
+                                        <th>Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tableUndangan">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="add-item-form mt-4 grid-4">
+                            <input type="text" id="undanganNama" placeholder="Nama Tamu">
+                            <input type="text" id="undanganRelasi" placeholder="Relasi (Keluarga/Teman Kerja)">
+                            <select id="undanganJumlah">
+                                <option value="1">1 Orang</option>
+                                <option value="2">2 Orang</option>
+                                <option value="3">3 Orang</option>
+                                <option value="4">4 Orang</option>
+                                <option value="5">5+ Orang</option>
+                            </select>
+                            <button onclick="addUndangan()" class="btn-primary"><i class="ri-add-line"></i>
+                                Tambah</button>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Edit Item</h3>
+                <button class="close-btn" id="closeModalBtn"><i class="ri-close-line"></i></button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Inputs will be injected here dynamically -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" id="cancelModalBtn">Batal</button>
+                <button class="btn-primary" id="saveModalBtn">Simpan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification system -->
+    <div id="toast" class="toast">Data berhasil disimpan</div>
+
+    <script type="module" src="script.js?v=2"></script>
+</body>
+
+</html>
