@@ -15,6 +15,7 @@
 </head>
 
 <body>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
     <div class="app-container">
         <!-- Sidebar -->
         <aside class="sidebar" id="sidebar">
@@ -99,7 +100,7 @@
                     </div>
                     <div class="card add-timeline-card">
                         <h3>Tambah Timeline Baru</h3>
-                        <div class="add-item-form">
+                        <div class="add-item-form timeline-form">
                             <select id="inputTimelineMonth">
                                 <option value="Bulan 12-10 Sebelum H">Bulan 12-10 Sebelum H</option>
                                 <option value="Bulan 9-6 Sebelum H">Bulan 9-6 Sebelum H</option>
@@ -124,23 +125,31 @@
                     </div>
                     <div class="grid-2">
                         <div class="card list-container">
-                            <h3 class="accent-title"><i class="ri-women-line"></i> Berkas CPW</h3>
+                            <h3 class="accent-title" style="display:flex; align-items:center; gap:8px;">
+                                <i class="ri-women-line"></i> Berkas CPW
+                                <a href="#" id="linkCPWDisplay" target="_blank" style="display:none; color:var(--primary); font-size:1.2rem;" title="Buka GDrive CPW"><i class="ri-drive-line"></i></a>
+                                <button onclick="editGlobalLink('berkasCPWLink')" class="btn-icon" style="font-size:1rem; padding:4px; margin-left:auto;" title="Edit Link GDrive"><i class="ri-edit-line"></i></button>
+                            </h3>
                             <ul class="todo-list" id="listBerkasCPW">
                                 <!-- Populated by JS -->
                             </ul>
-                            <div class="add-item-form compact">
-                                <input type="text" id="inputBerkasCPW" placeholder="Tambah Berkas CPW...">
+                            <div class="add-item-form compact mt-3" style="display:flex; gap:8px;">
+                                <input type="text" id="inputBerkasCPW" placeholder="Tambah Berkas CPW..." style="flex:1;">
                                 <button onclick="addSimpleItem('listBerkasCPW', 'inputBerkasCPW')"
                                     class="btn-secondary"><i class="ri-add-line"></i></button>
                             </div>
                         </div>
                         <div class="card list-container">
-                            <h3 class="accent-title"><i class="ri-men-line"></i> Berkas CPP</h3>
+                            <h3 class="accent-title" style="display:flex; align-items:center; gap:8px;">
+                                <i class="ri-men-line"></i> Berkas CPP
+                                <a href="#" id="linkCPPDisplay" target="_blank" style="display:none; color:var(--primary); font-size:1.2rem;" title="Buka GDrive CPP"><i class="ri-drive-line"></i></a>
+                                <button onclick="editGlobalLink('berkasCPPLink')" class="btn-icon" style="font-size:1rem; padding:4px; margin-left:auto;" title="Edit Link GDrive"><i class="ri-edit-line"></i></button>
+                            </h3>
                             <ul class="todo-list" id="listBerkasCPP">
                                 <!-- Populated by JS -->
                             </ul>
-                            <div class="add-item-form compact">
-                                <input type="text" id="inputBerkasCPP" placeholder="Tambah Berkas CPP...">
+                            <div class="add-item-form compact mt-3" style="display:flex; gap:8px;">
+                                <input type="text" id="inputBerkasCPP" placeholder="Tambah Berkas CPP..." style="flex:1;">
                                 <button onclick="addSimpleItem('listBerkasCPP', 'inputBerkasCPP')"
                                     class="btn-secondary"><i class="ri-add-line"></i></button>
                             </div>
@@ -212,14 +221,25 @@
                         <p>Daftar barang seserahan beserta brand dan harga.</p>
                     </div>
                     <div class="card">
+                        <div class="budget-summary grid-3 mb-4" style="grid-template-columns: repeat(1, 1fr) !important; background:var(--bg-main); padding:16px; border-radius:8px;">
+                            <div class="stat-card">
+                                <div class="stat-icon"><i class="ri-shopping-bag-3-line"></i></div>
+                                <div class="stat-info">
+                                    <p>Total Pengeluaran Seserahan</p>
+                                    <h3 id="totalSeserahan">Rp 0</h3>
+                                </div>
+                            </div>
+                        </div>
                         <div class="table-responsive">
                             <table class="data-table">
                                 <thead>
                                     <tr>
                                         <th width="50">Status</th>
+                                        <th>Kategori</th>
                                         <th>Item Seserahan</th>
                                         <th>Brand/Merk</th>
                                         <th>Harga (Rp)</th>
+                                        <th>Link</th>
                                         <th>Aksi</th>
                                     </tr>
                                 </thead>
@@ -228,10 +248,16 @@
                                 </tbody>
                             </table>
                         </div>
-                        <div class="add-item-form mt-4 grid-4">
+                        <div class="add-item-form timeline-form mt-4" style="grid-template-columns: 1fr 2fr 1.5fr 1fr 1.5fr auto; gap: 8px;">
+                            <select id="seserahanKategori">
+                                <option value="Dipakai Bersama">Dipakai Bersama</option>
+                                <option value="Dipakai Pria">Dipakai Pria</option>
+                                <option value="Dipakai Wanita">Dipakai Wanita</option>
+                            </select>
                             <input type="text" id="seserahanItem" placeholder="Nama Item (cth: Sepatu)">
                             <input type="text" id="seserahanBrand" placeholder="Brand/Merk">
                             <input type="number" id="seserahanHarga" placeholder="Harga (Rp)">
+                            <input type="url" id="seserahanLink" placeholder="Link Pembelian">
                             <button onclick="addSeserahan()" class="btn-primary"><i class="ri-add-line"></i>
                                 Tambah</button>
                         </div>
@@ -250,9 +276,10 @@
                             <ul class="vendor-list" id="listVendorSeleksi">
                                 <!-- Populated by JS -->
                             </ul>
-                            <div class="add-item-form compact mt-3">
+                            <div class="add-item-form timeline-form mt-3" style="padding:0; border:none; grid-template-columns: 2fr 3fr 2fr auto; gap:8px;">
                                 <input type="text" id="inputVendorKategori" placeholder="Kategori">
                                 <input type="text" id="inputVendorNama" placeholder="Nama Vendor">
+                                <input type="text" id="inputVendorIg" placeholder="@username IG">
                                 <button onclick="addVendor('seleksi')" class="btn-secondary"><i
                                         class="ri-add-line"></i></button>
                             </div>
@@ -263,9 +290,10 @@
                             <ul class="vendor-list" id="listVendorFinal">
                                 <!-- Populated by JS -->
                             </ul>
-                            <div class="add-item-form compact mt-3">
+                            <div class="add-item-form timeline-form mt-3" style="padding:0; border:none; grid-template-columns: 2fr 3fr 2fr auto; gap:8px;">
                                 <input type="text" id="inputVendorKategoriFinal" placeholder="Kategori">
                                 <input type="text" id="inputVendorNamaFinal" placeholder="Nama Vendor Final">
+                                <input type="text" id="inputVendorIgFinal" placeholder="@username IG">
                                 <button onclick="addVendor('final')" class="btn-primary"><i
                                         class="ri-add-line"></i></button>
                             </div>
@@ -284,10 +312,13 @@
                     </div>
                     <div class="card add-timeline-card mt-4">
                         <h3>Tambah Tugas Baru</h3>
-                        <div class="add-item-form">
-                            <input type="text" id="jobdeskVendor" placeholder="Vendor / Divisi (cth: WO, Fotografer)">
-                            <input type="text" id="jobdeskTugas" placeholder="Rincian Tugas...">
-                            <button onclick="addJobdesk()" class="btn-primary"><i class="ri-add-line"></i>
+                        <div class="add-item-form" style="display:flex; flex-direction:column; gap:12px;">
+                            <select id="jobdeskVendor" style="padding:10px; border-radius:6px; border:1px solid var(--border);">
+                                <option value="">-- Pilih Vendor --</option>
+                                <!-- Populated by JS -->
+                            </select>
+                            <textarea id="jobdeskTugas" placeholder="Rincian Tugas (bisa beberapa baris)..." style="width:100%; border-radius:6px; border:1px solid var(--border); padding:12px; font-family:inherit; min-height:100px; resize:vertical; outline:none;"></textarea>
+                            <button onclick="addJobdesk()" class="btn-primary" style="align-self: flex-start;"><i class="ri-add-line"></i>
                                 Tambah</button>
                         </div>
                     </div>

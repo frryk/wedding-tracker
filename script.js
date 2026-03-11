@@ -45,7 +45,9 @@ const defaultState = {
     jobdesk: [],
     catering: [],
     undangan: [],
-    weddingDate: ''
+    weddingDate: null,
+    berkasCPWLink: '',
+    berkasCPPLink: ''
 };
 
 
@@ -74,7 +76,9 @@ onValue(ref(db, 'weddingTrackerData'), (snapshot) => {
             jobdesk: data.jobdesk || [],
             catering: data.catering || [],
             undangan: data.undangan || [],
-            weddingDate: data.weddingDate || ''
+            weddingDate: data.weddingDate || '',
+            berkasCPWLink: data.berkasCPWLink || '',
+            berkasCPPLink: data.berkasCPPLink || ''
         };
     } else {
         // If DB is totally empty (First ever load)
@@ -147,12 +151,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Mobile Sidebar Toggle
     const sidebar = document.getElementById('sidebar');
-    document.getElementById('mobileToggle').addEventListener('click', () => {
-        sidebar.classList.add('open');
-    });
-    document.getElementById('mobileClose').addEventListener('click', () => {
-        sidebar.classList.remove('open');
-    });
+    const sidebarOverlay = document.getElementById('sidebarOverlay');
+    
+    function filterMobileToggle(open) {
+        if(open) {
+            sidebar.classList.add('open');
+            if(sidebarOverlay) sidebarOverlay.classList.add('show');
+        } else {
+            sidebar.classList.remove('open');
+            if(sidebarOverlay) sidebarOverlay.classList.remove('show');
+        }
+    }
+
+    document.getElementById('mobileToggle').addEventListener('click', () => filterMobileToggle(true));
+    document.getElementById('mobileClose').addEventListener('click', () => filterMobileToggle(false));
+    if(sidebarOverlay) {
+        sidebarOverlay.addEventListener('click', () => filterMobileToggle(false));
+    }
 
     // Navigation Logic
     const navBtns = document.querySelectorAll('.nav-btn');
@@ -170,8 +185,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             pageTitle.textContent = btn.textContent.trim();
 
-            if (window.innerWidth <= 768) {
-                sidebar.classList.remove('open');
+            if (window.innerWidth <= 992) {
+                filterMobileToggle(false);
             }
         });
     });
@@ -214,6 +229,8 @@ window.addVendor = addVendor;
 window.pindahFinal = pindahFinal;
 window.addJobdesk = addJobdesk;
 window.addCatering = addCatering;
+window.addSimpleItem = addSimpleItem;
+window.populateJobdeskVendorSelect = populateJobdeskVendorSelect;
 window.updateCateringField = updateCateringField;
 window.addUndangan = addUndangan;
 window.updateUndanganField = updateUndanganField;
@@ -221,6 +238,7 @@ window.openDateModal = openDateModal;
 window.closeDateModal = closeDateModal;
 window.saveWeddingDate = saveWeddingDate;
 window.updateCountdown = updateCountdown;
+window.editGlobalLink = editGlobalLink;
 
 // ====== Render Functions ======
 
@@ -230,6 +248,7 @@ function renderAll() {
     renderTimeline();
     renderSimpleList('berkasCPW', 'listBerkasCPW');
     renderSimpleList('berkasCPP', 'listBerkasCPP');
+    renderGlobalLinks();
     renderBudget();
     renderSeserahan();
     renderVendor('vendorSeleksi', 'listVendorSeleksi');
@@ -238,6 +257,7 @@ function renderAll() {
     renderCatering();
     renderUndangan();
     updateCountdown();
+    populateJobdeskVendorSelect();
 }
 
 // 1. Persiapan Menikah
@@ -386,45 +406,148 @@ function editItem(stateKey, id) {
 
     switch (stateKey) {
         case 'persiapan':
-            html += `<div class="form-group"><label>Judul</label><input type="text" id="editPersTitle" value="${item.title}"></div>`;
-            html += `<div class="form-group"><label>Keterangan</label><input type="text" id="editPersDesc" value="${item.desc || ''}"></div>`;
-            html += `<div class="form-group"><label>Link Referensi</label><input type="url" id="editPersLink" value="${item.link || ''}"></div>`;
+            html = `
+                <div class="form-group">
+                    <label>Judul</label>
+                    <input type="text" id="editPersTitle" value="${item.title}">
+                </div>
+                <div class="form-group">
+                    <label>Keterangan</label>
+                    <input type="text" id="editPersDesc" value="${item.desc || ''}">
+                </div>
+                <div class="form-group">
+                    <label>Link Referensi</label>
+                    <input type="url" id="editPersLink" value="${item.link || ''}">
+                </div>
+            `;
             break;
         case 'timeline':
-            html += `<div class="form-group"><label>Tugas</label><input type="text" id="editTlTask" value="${item.task}"></div>`;
+            html = `
+                <div class="form-group">
+                    <label>Tugas</label>
+                    <input type="text" id="editTlTask" value="${item.task}">
+                </div>
+            `;
             break;
         case 'berkasCPW':
         case 'berkasCPP':
-            html += `<div class="form-group"><label>Berkas</label><input type="text" id="editBerkasTitle" value="${item.title}"></div>`;
+            html = `
+                <div class="form-group">
+                    <label>Berkas</label>
+                    <input type="text" id="editBerkasTitle" value="${item.title}">
+                </div>
+            `;
             break;
         case 'budget':
-            html += `<div class="form-group"><label>Kategori</label><input type="text" id="editBudKategori" value="${item.kategori}"></div>`;
-            html += `<div class="form-group"><label>Item</label><input type="text" id="editBudItem" value="${item.item}"></div>`;
-            html += `<div class="form-group"><label>Estimasi Biaya (Rp)</label><input type="number" id="editBudEst" value="${item.estimasi}"></div>`;
+            html = `
+                <div class="form-group">
+                    <label>Kategori</label>
+                    <input type="text" id="editBudKategori" value="${item.kategori}">
+                </div>
+                <div class="form-group">
+                    <label>Item</label>
+                    <input type="text" id="editBudItem" value="${item.item}">
+                </div>
+                <div class="form-group">
+                    <label>Estimasi Biaya (Rp)</label>
+                    <input type="number" id="editBudEst" value="${item.estimasi}">
+                </div>
+            `;
             break;
         case 'seserahan':
-            html += `<div class="form-group"><label>Item</label><input type="text" id="editSesItem" value="${item.item}"></div>`;
-            html += `<div class="form-group"><label>Brand/Merk</label><input type="text" id="editSesBrand" value="${item.brand || ''}"></div>`;
-            html += `<div class="form-group"><label>Harga (Rp)</label><input type="number" id="editSesHarga" value="${item.harga}"></div>`;
+            html = `
+                <div class="form-group">
+                    <label>Kategori</label>
+                    <select id="editSesKat" style="padding:8px; border-radius:6px; border:1px solid var(--border);">
+                        <option value="Dipakai Bersama" ${item.kategori === 'Dipakai Bersama' ? 'selected' : ''}>Dipakai Bersama</option>
+                        <option value="Dipakai Pria" ${item.kategori === 'Dipakai Pria' ? 'selected' : ''}>Dipakai Pria</option>
+                        <option value="Dipakai Wanita" ${item.kategori === 'Dipakai Wanita' ? 'selected' : ''}>Dipakai Wanita</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Item</label>
+                    <input type="text" id="editSesItem" value="${item.item}">
+                </div>
+                <div class="form-group">
+                    <label>Brand/Merk</label>
+                    <input type="text" id="editSesBrand" value="${item.brand || ''}">
+                </div>
+                <div class="form-group">
+                    <label>Harga (Rp)</label>
+                    <input type="number" id="editSesHarga" value="${item.harga}">
+                </div>
+                <div class="form-group">
+                    <label>Link Pembelian</label>
+                    <input type="url" id="editSesLink" value="${item.link || ''}">
+                </div>
+            `;
             break;
         case 'vendorSeleksi':
         case 'vendorFinal':
-            html += `<div class="form-group"><label>Kategori</label><input type="text" id="editVenKat" value="${item.kategori}"></div>`;
-            html += `<div class="form-group"><label>Nama Vendor</label><input type="text" id="editVenNama" value="${item.nama}"></div>`;
+            html = `
+                <div class="form-group">
+                    <label>Kategori</label>
+                    <input type="text" id="editVenKat" value="${item.kategori}">
+                </div>
+                <div class="form-group">
+                    <label>Nama Vendor</label>
+                    <input type="text" id="editVenNama" value="${item.nama}">
+                </div>
+                <div class="form-group">
+                    <label>@username IG</label>
+                    <input type="text" id="editVenIg" value="${item.ig || ''}">
+                </div>
+            `;
             break;
         case 'jobdesk':
-            html += `<div class="form-group"><label>Vendor/Divisi</label><input type="text" id="editJobVendor" value="${item.vendor}"></div>`;
-            html += `<div class="form-group"><label>Tugas</label><input type="text" id="editJobTugas" value="${item.tugas}"></div>`;
+            const vendorOptions = appState.vendorFinal.map(v => 
+                `<option value="${v.nama}" ${item.vendor === v.nama ? 'selected' : ''}>${v.nama}</option>`
+            ).join('');
+            
+            html = `
+                <div class="form-group">
+                    <label>Vendor/Divisi</label>
+                    <select id="editJobVendor" style="padding:8px; border-radius:6px; border:1px solid var(--border);">
+                        ${vendorOptions || `<option value="${item.vendor}" selected>${item.vendor}</option>`}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Tugas</label>
+                    <textarea id="editJobTugas" style="width:100%; border-radius:6px; border:1px solid var(--border); padding:10px; font-family:inherit; min-height:80px; resize:vertical;">${item.tugas}</textarea>
+                </div>
+            `;
             break;
         case 'catering':
-            html += `<div class="form-group"><label>Nama Catering</label><input type="text" id="editCatNama" value="${item.nama}"></div>`;
-            html += `<div class="form-group"><label>Paket</label><input type="text" id="editCatPaket" value="${item.paket || ''}"></div>`;
-            html += `<div class="form-group"><label>Harga Estimasi (Rp)</label><input type="number" id="editCatHarga" value="${item.harga}"></div>`;
+            html = `
+                <div class="form-group">
+                    <label>Nama Catering</label>
+                    <input type="text" id="editCatNama" value="${item.nama}">
+                </div>
+                <div class="form-group">
+                    <label>Paket</label>
+                    <input type="text" id="editCatPaket" value="${item.paket || ''}">
+                </div>
+                <div class="form-group">
+                    <label>Harga Estimasi (Rp)</label>
+                    <input type="number" id="editCatHarga" value="${item.harga}">
+                </div>
+            `;
             break;
         case 'undangan':
-            html += `<div class="form-group"><label>Nama Tamu</label><input type="text" id="editUndNama" value="${item.nama}"></div>`;
-            html += `<div class="form-group"><label>Relasi</label><input type="text" id="editUndRelasi" value="${item.relasi || ''}"></div>`;
-            html += `<div class="form-group"><label>Jumlah Orang</label><input type="number" id="editUndJumlah" value="${item.jumlah}"></div>`;
+            html = `
+                <div class="form-group">
+                    <label>Nama Tamu</label>
+                    <input type="text" id="editUndNama" value="${item.nama}">
+                </div>
+                <div class="form-group">
+                    <label>Relasi</label>
+                    <input type="text" id="editUndRelasi" value="${item.relasi || ''}">
+                </div>
+                <div class="form-group">
+                    <label>Jumlah Orang</label>
+                    <input type="number" id="editUndJumlah" value="${item.jumlah}">
+                </div>
+            `;
             break;
     }
 
@@ -458,14 +581,17 @@ function saveEditedItem() {
                 item.estimasi = document.getElementById('editBudEst').value || item.estimasi;
                 break;
             case 'seserahan':
+                item.kategori = document.getElementById('editSesKat').value.trim() || item.kategori;
                 item.item = document.getElementById('editSesItem').value.trim() || item.item;
                 item.brand = document.getElementById('editSesBrand').value.trim();
                 item.harga = document.getElementById('editSesHarga').value || item.harga;
+                item.link = document.getElementById('editSesLink').value.trim();
                 break;
             case 'vendorSeleksi':
             case 'vendorFinal':
                 item.kategori = document.getElementById('editVenKat').value.trim() || item.kategori;
                 item.nama = document.getElementById('editVenNama').value.trim() || item.nama;
+                item.ig = document.getElementById('editVenIg').value.trim();
                 break;
             case 'jobdesk':
                 item.vendor = document.getElementById('editJobVendor').value.trim() || item.vendor;
@@ -505,7 +631,9 @@ function renderSimpleList(stateKey, elementId) {
             <div class="item-content">
                 <input type="checkbox" class="checkbox-custom" ${item.checked ? 'checked' : ''} onchange="toggleCheck('${stateKey}', ${item.id})">
                 <div class="item-text">
-                    <span class="item-title" style="font-size: 0.95rem;">${item.title}</span>
+                    <span class="item-title" style="font-size: 0.95rem;">
+                        ${item.title}
+                    </span>
                 </div>
             </div>
             <div class="action-btns" style="display:flex; gap: 4px; align-items:center;">
@@ -532,6 +660,43 @@ function addSimpleItem(elementId, inputId) {
 
     input.value = '';
     saveState();
+}
+
+function editGlobalLink(key) {
+    if (!isLoaded) return;
+    const currentLink = appState[key] || '';
+    const name = key === 'berkasCPWLink' ? 'CPW' : 'CPP';
+    const newLink = prompt(`Masukkan Link Google Drive untuk Berkas ${name}:`, currentLink);
+    
+    if (newLink !== null) {
+        appState[key] = newLink.trim();
+        saveState();
+        renderGlobalLinks();
+        showToast('Link GDrive diperbarui');
+    }
+}
+
+function renderGlobalLinks() {
+    const cpw = document.getElementById('linkCPWDisplay');
+    const cpp = document.getElementById('linkCPPDisplay');
+    
+    if (cpw) {
+        if (appState.berkasCPWLink) {
+            cpw.href = appState.berkasCPWLink;
+            cpw.style.display = 'inline-block';
+        } else {
+            cpw.style.display = 'none';
+        }
+    }
+    
+    if (cpp) {
+        if (appState.berkasCPPLink) {
+            cpp.href = appState.berkasCPPLink;
+            cpp.style.display = 'inline-block';
+        } else {
+            cpp.style.display = 'none';
+        }
+    }
 }
 
 // 4. Budget Nikah
@@ -619,16 +784,29 @@ function updateBiayaAktual(id, value) {
 function renderSeserahan() {
     const tbody = document.getElementById('tableSeserahan');
     tbody.innerHTML = '';
+    let totalHarga = 0;
 
-    appState.seserahan.forEach(item => {
+    // Sort by kategori so they cluster together conceptually
+    const sorted = [...appState.seserahan].sort((a, b) => (a.kategori || '').localeCompare(b.kategori || ''));
+
+    sorted.forEach(item => {
+        totalHarga += Number(item.harga || 0);
+        let badgeClass = 'primary';
+        if (item.kategori === 'Dipakai Wanita') badgeClass = 'danger'; // pinkish
+        if (item.kategori === 'Dipakai Bersama') badgeClass = 'success'; // greenish
+
         tbody.innerHTML += `
             <tr class="${item.checked ? 'completed' : ''}">
                 <td>
                     <input type="checkbox" class="checkbox-custom" ${item.checked ? 'checked' : ''} onchange="toggleCheck('seserahan', ${item.id})">
                 </td>
+                <td><span class="badge ${badgeClass}">${item.kategori || 'Lainnya'}</span></td>
                 <td style="${item.checked ? 'text-decoration: line-through; color: var(--text-muted);' : ''}"><strong>${item.item}</strong></td>
                 <td>${item.brand || '-'}</td>
                 <td>${formatRp(item.harga)}</td>
+                <td>
+                    ${item.link ? `<a href="${item.link}" target="_blank" style="color:var(--primary); font-size:1.2rem;" title="Beli di Toko"><i class="ri-shopping-cart-line"></i></a>` : '-'}
+                </td>
                 <td>
                     <div style="display: flex; gap: 4px;">
                         <button class="btn-icon edit" onclick="editItem('seserahan', ${item.id})"><i class="ri-edit-line"></i></button>
@@ -638,27 +816,35 @@ function renderSeserahan() {
             </tr>
         `;
     });
+
+    const totalEl = document.getElementById('totalSeserahan');
+    if (totalEl) totalEl.textContent = formatRp(totalHarga);
 }
 
 function addSeserahan() {
     if (!isLoaded) return;
+    const kategori = document.getElementById('seserahanKategori').value;
     const item = document.getElementById('seserahanItem').value;
     const brand = document.getElementById('seserahanBrand').value;
     const harga = document.getElementById('seserahanHarga').value || 0;
+    const link = document.getElementById('seserahanLink').value;
 
     if (!item) return showToast('Nama item wajib diisi');
 
     appState.seserahan.push({
         id: generateId(),
+        kategori: kategori,
         item: item,
         brand: brand,
         harga: harga,
+        link: link,
         checked: false
     });
 
     document.getElementById('seserahanItem').value = '';
     document.getElementById('seserahanBrand').value = '';
     document.getElementById('seserahanHarga').value = '';
+    document.getElementById('seserahanLink').value = '';
 
     saveState();
     showToast('Item Seserahan ditambahkan');
@@ -677,7 +863,10 @@ function renderVendor(stateKey, elementId) {
                         <i class="ri-store-2-line"></i>
                     </div>
                     <div class="item-text">
-                        <span class="item-title" style="font-size: 1rem;">${item.nama}</span>
+                        <span class="item-title" style="font-size: 1rem; display:flex; align-items:center; gap:8px;">
+                            ${item.nama}
+                            ${item.ig ? `<a href="https://instagram.com/${item.ig.replace('@', '')}" target="_blank" style="color:#d62976; font-size:1.1rem;" title="Buka Instagram"><i class="ri-instagram-line"></i></a>` : ''}
+                        </span>
                         <span class="badge primary" style="width: fit-content; margin-top: 4px;">${item.kategori}</span>
                     </div>
                 </div>
@@ -691,6 +880,30 @@ function renderVendor(stateKey, elementId) {
             </li>
         `;
     });
+
+    if (stateKey === 'vendorFinal') {
+        populateJobdeskVendorSelect();
+    }
+}
+
+function populateJobdeskVendorSelect() {
+    const select = document.getElementById('jobdeskVendor');
+    if (!select || !appState) return;
+    
+    // Store current selection to restore if it still exists
+    const currentVal = select.value;
+    
+    let html = '<option value="">-- Pilih Vendor --</option>';
+    if (appState.vendorFinal) {
+        appState.vendorFinal.forEach(v => {
+            html += `<option value="${v.nama}">${v.nama}</option>`;
+        });
+    }
+    select.innerHTML = html;
+    
+    if (currentVal && appState.vendorFinal && appState.vendorFinal.some(v => v.nama === currentVal)) {
+        select.value = currentVal;
+    }
 }
 
 function addVendor(type) {
@@ -698,20 +911,24 @@ function addVendor(type) {
     const stateKey = type === 'seleksi' ? 'vendorSeleksi' : 'vendorFinal';
     const katId = type === 'seleksi' ? 'inputVendorKategori' : 'inputVendorKategoriFinal';
     const namaId = type === 'seleksi' ? 'inputVendorNama' : 'inputVendorNamaFinal';
+    const igId = type === 'seleksi' ? 'inputVendorIg' : 'inputVendorIgFinal';
 
     const kat = document.getElementById(katId).value;
     const nama = document.getElementById(namaId).value;
+    const ig = document.getElementById(igId).value;
 
     if (!kat || !nama) return showToast('Lengkapi data vendor');
 
     appState[stateKey].push({
         id: generateId(),
         kategori: kat,
-        nama: nama
+        nama: nama,
+        ig: ig
     });
 
     document.getElementById(katId).value = '';
     document.getElementById(namaId).value = '';
+    document.getElementById(igId).value = '';
 
     saveState();
 }
@@ -740,15 +957,18 @@ function renderJobdesk() {
     }, {});
 
     for (const [vendor, tasks] of Object.entries(grouped)) {
-        let tasksHtml = tasks.map(t => `
-            <li style="margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
-                <span><i class="ri-arrow-right-s-line" style="color: var(--primary);"></i> ${t.tugas}</span>
-                <div style="display: flex; gap: 4px; align-items: center;">
+        let tasksHtml = tasks.map(t => {
+            // Replace newlines with <br> for multiline display
+            const formattedTugas = (t.tugas || '').replace(/\n/g, '<br>');
+            return `
+            <li style="margin-bottom: 8px; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;">
+                <span style="flex:1; line-height: 1.5;"><i class="ri-arrow-right-s-line" style="color: var(--primary);"></i> ${formattedTugas}</span>
+                <div style="display: flex; gap: 4px; align-items: center; margin-top:2px;">
                     <button class="btn-icon edit" style="width:24px;height:24px;font-size:0.9rem;" onclick="editItem('jobdesk', ${t.id})"><i class="ri-edit-line"></i></button>
                     <button class="btn-icon delete" style="width:24px;height:24px;font-size:0.9rem;" onclick="deleteItem('jobdesk', ${t.id})"><i class="ri-close-line"></i></button>
-                </div>
             </li>
-        `).join('');
+        `;
+        }).join('');
 
         container.innerHTML += `
             <div class="card" style="margin-bottom: 16px;">

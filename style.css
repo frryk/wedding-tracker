@@ -60,6 +60,27 @@ body {
 .app-container {
     display: flex;
     min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+}
+
+.sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(2px);
+    z-index: 90;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s, visibility 0.3s;
+}
+
+.sidebar-overlay.show {
+    opacity: 1;
+    visibility: visible;
 }
 
 .sidebar {
@@ -416,6 +437,10 @@ input:focus, select:focus {
 .add-item-form.grid-4 {
     display: grid;
     grid-template-columns: 2fr 1fr 1fr auto;
+}
+.add-item-form.timeline-form {
+    display: grid;
+    grid-template-columns: 1fr 3fr auto;
 }
 .add-item-form.compact {
     padding: 0;
@@ -802,6 +827,89 @@ input:focus, select:focus {
     
     .stat-card {
         padding: 16px;
+    }
+}
+
+/* Comprehensive Responsive Adjustments */
+@media (max-width: 992px) {
+    .sidebar {
+        transform: translateX(-100%);
+        width: 300px; /* slightly wider on mobile to fit touch targets */
+        box-shadow: 4px 0 15px rgba(0,0,0,0.1);
+    }
+    
+    .sidebar.open {
+        transform: translateX(0);
+    }
+    
+    .main-content {
+        margin-left: 0;
+        width: 100%;
+    }
+    
+    .mobile-toggle {
+        display: block;
+    }
+    
+    .mobile-close {
+        display: block;
+        padding: 8px;
+        color: var(--text-muted);
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+    }
+    
+    /* Convert Grids to single column */
+    .grid-2, .grid-3, .grid-4 {
+        grid-template-columns: 1fr;
+    }
+    
+    .add-item-form.timeline-form {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* Keep tables scrollable and prevent squishing */
+    .data-table th, .data-table td {
+        white-space: nowrap;
+    }
+    
+    .table-responsive {
+        border-right: 1px solid var(--border); /* Adds a hint there is scrollable content */
+    }
+    
+    /* Flex headers inside List Sections */
+    .card.header-card h2 {
+        font-size: 1.5rem;
+    }
+
+    /* Padding adjustments */
+    header.topbar {
+        padding: 0 16px;
+    }
+    
+    .content-wrapper {
+        padding: 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    /* Compact item rows for very small screens */
+    .item-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .item-row .action-btns {
+        align-self: flex-end;
+    }
+    
+    /* Better modal fit */
+    .modal-content {
+        width: 95%;
+        margin: 10px;
     }
 }
 
