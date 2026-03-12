@@ -61,6 +61,10 @@ let currentEditId = null;
 let currentDeleteStateKey = null;
 let currentDeleteId = null;
 
+// Temp packages array for vendor edit modal
+let currentVendorPackages = [];
+let currentEditPackageIdx = -1; // index of package being edited inline
+
 // Listen to Firebase Realtime Database
 onValue(ref(db, 'weddingTrackerData'), (snapshot) => {
     const data = snapshot.val();
@@ -268,6 +272,11 @@ window.saveWeddingDate = saveWeddingDate;
 window.updateCountdown = updateCountdown;
 window.editGlobalLink = editGlobalLink;
 window.renderSeserahan = renderSeserahan;
+window.addPackageToModal = addPackageToModal;
+window.removePackageFromModal = removePackageFromModal;
+window.editPackageInModal = editPackageInModal;
+window.savePackageEdit = savePackageEdit;
+window.cancelPackageEdit = cancelPackageEdit;
 
 // ====== Render Functions ======
 
@@ -570,18 +579,61 @@ function editItem(stateKey, id) {
             break;
         case 'vendorSeleksi':
         case 'vendorFinal':
+            modalTitle.textContent = `Detail Vendor: ${item.nama}`;
+            // Backward compat: migrate old flat fields into packages array
+            if (!item.packages) {
+                item.packages = [];
+                if (item.harga || item.fasilitas || item.sk) {
+                    item.packages.push({
+                        id: generateId(),
+                        nama: 'Paket 1',
+                        harga: item.harga || '',
+                        fasilitas: item.fasilitas || '',
+                        sk: item.sk || ''
+                    });
+                    delete item.harga; delete item.fasilitas; delete item.sk;
+                }
+            }
+            currentVendorPackages = JSON.parse(JSON.stringify(item.packages || []));
             html = `
-                <div class="form-group">
-                    <label>Kategori</label>
-                    <input type="text" id="editVenKat" value="${item.kategori}">
+                <div class="grid-2" style="gap:12px;">
+                    <div class="form-group">
+                        <label>Kategori</label>
+                        <input type="text" id="editVenKat" value="${item.kategori}">
+                    </div>
+                    <div class="form-group">
+                        <label>Nama Vendor</label>
+                        <input type="text" id="editVenNama" value="${item.nama}">
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label>Nama Vendor</label>
-                    <input type="text" id="editVenNama" value="${item.nama}">
-                </div>
-                <div class="form-group">
+                <div class="form-group" style="margin-top:12px;">
                     <label>@username IG</label>
                     <input type="text" id="editVenIg" value="${item.ig || ''}">
+                </div>
+                <hr style="margin:16px 0; border:none; border-top:1px solid var(--border);">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+                    <strong style="font-size:0.95rem;"><i class="ri-price-tag-3-line" style="color:var(--primary);"></i> Paket Harga</strong>
+                </div>
+                <div id="modalPackageList"></div>
+                <div style="background:var(--bg-main); border:1px dashed var(--border); border-radius:8px; padding:14px; margin-top:10px;">
+                    <p style="font-size:0.8rem; font-weight:600; color:var(--text-muted); margin-bottom:10px; text-transform:uppercase; letter-spacing:.5px;">+ Tambah Paket Baru</p>
+                    <div class="form-group" style="margin-bottom:8px;">
+                        <label>Nama Paket</label>
+                        <input type="text" id="newPktNama" placeholder="cth: Paket Silver / Paket Gold">
+                    </div>
+                    <div class="form-group" style="margin-bottom:8px;">
+                        <label><i class="ri-money-dollar-circle-line" style="color:var(--primary);"></i> Harga</label>
+                        <input type="number" id="newPktHarga" placeholder="Nominal angka (cth: 5000000)" min="0">
+                    </div>
+                    <div class="form-group" style="margin-bottom:8px;">
+                        <label><i class="ri-star-line" style="color:var(--primary);"></i> Fasilitas</label>
+                        <textarea id="newPktFasilitas" style="width:100%; border-radius:6px; border:1px solid var(--border); padding:8px; font-family:inherit; min-height:60px; resize:vertical; outline:none; background:var(--bg-card); color:var(--text-main);" placeholder="3 Fotografer, 2 Videografer, Album fisik..."></textarea>
+                    </div>
+                    <div class="form-group" style="margin-bottom:10px;">
+                        <label><i class="ri-file-text-line" style="color:var(--primary);"></i> S&amp;K</label>
+                        <textarea id="newPktSk" style="width:100%; border-radius:6px; border:1px solid var(--border); padding:8px; font-family:inherit; min-height:60px; resize:vertical; outline:none; background:var(--bg-card); color:var(--text-main);" placeholder="DP 50% saat booking, pelunasan H-7..."></textarea>
+                    </div>
+                    <button type="button" onclick="addPackageToModal()" class="btn-secondary" style="width:100%;"><i class="ri-add-line"></i> Tambah Paket</button>
                 </div>
             `;
             break;
@@ -650,6 +702,11 @@ function editItem(stateKey, id) {
 
     modalBody.innerHTML = html;
     modal.classList.add('show');
+
+    // If vendor modal, render the existing packages list now that DOM exists
+    if (currentEditStateKey === 'vendorSeleksi' || currentEditStateKey === 'vendorFinal') {
+        renderModalPackageList();
+    }
 }
 
 function saveEditedItem() {
@@ -700,6 +757,8 @@ function saveEditedItem() {
                 item.kategori = document.getElementById('editVenKat').value.trim() || item.kategori;
                 item.nama = document.getElementById('editVenNama').value.trim() || item.nama;
                 item.ig = document.getElementById('editVenIg').value.trim();
+                item.packages = JSON.parse(JSON.stringify(currentVendorPackages));
+                currentVendorPackages = [];
                 break;
             case 'jobdesk':
                 item.vendor = document.getElementById('editJobVendor').value.trim() || item.vendor;
@@ -1009,26 +1068,189 @@ function addSeserahan() {
 }
 
 // 6. List Vendor
+function renderModalPackageList() {
+    const container = document.getElementById('modalPackageList');
+    if (!container) return;
+    if (currentVendorPackages.length === 0) {
+        container.innerHTML = `<p style="text-align:center; font-size:0.85rem; color:var(--text-muted); padding:10px 0;">Belum ada paket. Tambahkan di bawah.</p>`;
+        return;
+    }
+    container.innerHTML = currentVendorPackages.map((pkg, idx) => {
+        // Inline edit mode for this package
+        if (idx === currentEditPackageIdx) {
+            return `
+                <div style="background:var(--primary-light); border:1px solid var(--primary); border-radius:8px; padding:14px; margin-bottom:8px;">
+                    <p style="font-size:0.78rem; font-weight:700; color:var(--primary-dark); margin-bottom:10px; text-transform:uppercase; letter-spacing:.5px;">Edit Paket</p>
+                    <div style="margin-bottom:8px;">
+                        <label style="font-size:0.82rem; font-weight:600; display:block; margin-bottom:4px; color:var(--text-main);">Nama Paket</label>
+                        <input type="text" id="editPktNama_${idx}" value="${pkg.nama || ''}" style="width:100%; padding:8px 10px; border-radius:6px; border:1px solid var(--border); font-family:inherit; background:var(--bg-card); color:var(--text-main);">
+                    </div>
+                    <div style="margin-bottom:8px;">
+                        <label style="font-size:0.82rem; font-weight:600; display:block; margin-bottom:4px; color:var(--text-main);">Harga</label>
+                        <input type="number" id="editPktHarga_${idx}" value="${Number(pkg.harga) || ''}" min="0" style="width:100%; padding:8px 10px; border-radius:6px; border:1px solid var(--border); font-family:inherit; background:var(--bg-card); color:var(--text-main);">
+                    </div>
+                    <div style="margin-bottom:8px;">
+                        <label style="font-size:0.82rem; font-weight:600; display:block; margin-bottom:4px; color:var(--text-main);">Fasilitas</label>
+                        <textarea id="editPktFasilitas_${idx}" style="width:100%; padding:8px 10px; border-radius:6px; border:1px solid var(--border); font-family:inherit; min-height:60px; resize:vertical; background:var(--bg-card); color:var(--text-main);">${pkg.fasilitas || ''}</textarea>
+                    </div>
+                    <div style="margin-bottom:12px;">
+                        <label style="font-size:0.82rem; font-weight:600; display:block; margin-bottom:4px; color:var(--text-main);">S&amp;K</label>
+                        <textarea id="editPktSk_${idx}" style="width:100%; padding:8px 10px; border-radius:6px; border:1px solid var(--border); font-family:inherit; min-height:60px; resize:vertical; background:var(--bg-card); color:var(--text-main);">${pkg.sk || ''}</textarea>
+                    </div>
+                    <div style="display:flex; gap:8px;">
+                        <button type="button" onclick="savePackageEdit(${idx})" class="btn-primary" style="flex:1; padding:8px;"><i class="ri-check-line"></i> Simpan</button>
+                        <button type="button" onclick="cancelPackageEdit()" class="btn-secondary" style="padding:8px 14px;">Batal</button>
+                    </div>
+                </div>
+            `;
+        }
+        // View mode
+        return `
+            <div style="background:var(--bg-main); border:1px solid var(--border); border-radius:8px; padding:12px 14px; margin-bottom:8px;">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+                    <div style="flex:1; min-width:0;">
+                        <div style="font-weight:600; font-size:0.92rem; margin-bottom:4px;">
+                            <i class="ri-price-tag-3-line" style="color:var(--primary);"></i>
+                            ${pkg.nama || 'Paket'}
+                            ${Number(pkg.harga) > 0 ? `<span style="font-size:0.85rem; color:var(--primary); margin-left:8px; font-weight:500;">${formatRp(pkg.harga)}</span>` : (pkg.harga ? `<span style="font-size:0.85rem; color:var(--primary); margin-left:8px; font-weight:500;">${pkg.harga}</span>` : '')}
+                        </div>
+                        ${pkg.fasilitas ? `<div style="font-size:0.8rem; color:var(--text-muted); margin-top:3px;"><i class="ri-star-line" style="color:var(--primary);"></i> <strong>Fasilitas:</strong> ${pkg.fasilitas.replace(/\n/g,'<br>')}</div>` : ''}
+                        ${pkg.sk ? `<div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;"><i class="ri-file-text-line" style="color:var(--primary);"></i> <strong>S&amp;K:</strong> ${pkg.sk.replace(/\n/g,'<br>')}</div>` : ''}
+                    </div>
+                    <div style="display:flex; gap:4px; flex-shrink:0;">
+                        <button type="button" class="btn-icon edit" onclick="editPackageInModal(${idx})" title="Edit paket"><i class="ri-edit-line"></i></button>
+                        <button type="button" class="btn-icon delete" onclick="removePackageFromModal(${idx})" title="Hapus paket"><i class="ri-delete-bin-line"></i></button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function editPackageInModal(idx) {
+    currentEditPackageIdx = idx;
+    renderModalPackageList();
+}
+
+function cancelPackageEdit() {
+    currentEditPackageIdx = -1;
+    renderModalPackageList();
+}
+
+function savePackageEdit(idx) {
+    const nama = (document.getElementById(`editPktNama_${idx}`)?.value || '').trim();
+    const harga = (document.getElementById(`editPktHarga_${idx}`)?.value || '').trim();
+    const fasilitas = (document.getElementById(`editPktFasilitas_${idx}`)?.value || '').trim();
+    const sk = (document.getElementById(`editPktSk_${idx}`)?.value || '').trim();
+
+    if (!nama) return showToast('Nama Paket tidak boleh kosong');
+
+    currentVendorPackages[idx] = { ...currentVendorPackages[idx], nama, harga: Number(harga) || 0, fasilitas, sk };
+
+    // Persist immediately
+    syncPackagesToAppState();
+
+    currentEditPackageIdx = -1;
+    renderModalPackageList();
+    showToast('Paket diperbarui');
+}
+
+function addPackageToModal() {
+    const nama = document.getElementById('newPktNama').value.trim();
+    const harga = document.getElementById('newPktHarga').value.trim();
+    const fasilitas = document.getElementById('newPktFasilitas').value.trim();
+    const sk = document.getElementById('newPktSk').value.trim();
+
+    if (!nama) return showToast('Isi Nama Paket terlebih dahulu');
+
+    currentVendorPackages.push({ id: generateId(), nama, harga: Number(harga) || 0, fasilitas, sk });
+
+    // Clear mini-form
+    document.getElementById('newPktNama').value = '';
+    document.getElementById('newPktHarga').value = '';
+    document.getElementById('newPktFasilitas').value = '';
+    document.getElementById('newPktSk').value = '';
+
+    // Persist immediately
+    syncPackagesToAppState();
+
+    renderModalPackageList();
+    showToast('Paket ditambahkan');
+}
+
+function removePackageFromModal(idx) {
+    currentVendorPackages.splice(idx, 1);
+    if (currentEditPackageIdx === idx) currentEditPackageIdx = -1;
+    else if (currentEditPackageIdx > idx) currentEditPackageIdx--;
+
+    // Persist immediately so vendor card updates right away
+    syncPackagesToAppState();
+
+    renderModalPackageList();
+    showToast('Paket dihapus');
+}
+
+// Sync currentVendorPackages back to the item in appState and save
+function syncPackagesToAppState() {
+    if (!currentEditStateKey || !currentEditId || !appState) return;
+    const item = appState[currentEditStateKey].find(i => i.id == currentEditId);
+    if (!item) return;
+    item.packages = JSON.parse(JSON.stringify(currentVendorPackages));
+    saveState();
+    renderAll();
+}
+
 function renderVendor(stateKey, elementId) {
     const list = document.getElementById(elementId);
     list.innerHTML = '';
 
     appState[stateKey].forEach(item => {
+        const packages = item.packages || [];
+        // Legacy single-field fallback (for items not yet edited)
+        const hasLegacy = !item.packages && (item.harga || item.fasilitas || item.sk);
+        let packagesHtml = '';
+        if (packages.length > 0) {
+            packagesHtml = `
+                <div style="margin-top:10px; display:flex; flex-direction:column; gap:6px;">
+                    ${packages.map(pkg => `
+                        <div style="background:var(--bg-main); border:1px solid var(--border); border-radius:6px; padding:8px 12px; font-size:0.83rem;">
+                            <div style="font-weight:600; color:var(--text-main); margin-bottom:3px;">
+                                <i class="ri-price-tag-3-line" style="color:var(--primary);"></i>
+                                ${pkg.nama || 'Paket'}
+                                ${Number(pkg.harga) > 0 ? `<span style="color:var(--primary); margin-left:6px;">${formatRp(pkg.harga)}</span>` : (pkg.harga ? `<span style="color:var(--primary); margin-left:6px;">${pkg.harga}</span>` : '')}
+                            </div>
+                            ${pkg.fasilitas ? `<div style="color:var(--text-muted); margin-top:2px;"><i class="ri-star-line" style="color:var(--primary);"></i> <strong>Fasilitas:</strong> ${pkg.fasilitas}</div>` : ''}
+                            ${pkg.sk ? `<div style="color:var(--text-muted); margin-top:2px;"><i class="ri-file-text-line" style="color:var(--primary);"></i> <strong>S&amp;K:</strong> ${pkg.sk}</div>` : ''}
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        } else if (hasLegacy) {
+            packagesHtml = `
+                <div style="margin-top:8px; display:flex; flex-direction:column; gap:4px; font-size:0.85rem; color:var(--text-muted);">
+                    ${item.harga ? `<span><i class="ri-money-dollar-circle-line" style="color:var(--primary);"></i> <strong>Harga:</strong> ${item.harga}</span>` : ''}
+                    ${item.fasilitas ? `<span><i class="ri-star-line" style="color:var(--primary);"></i> <strong>Fasilitas:</strong> ${item.fasilitas}</span>` : ''}
+                    ${item.sk ? `<span><i class="ri-file-text-line" style="color:var(--primary);"></i> <strong>S&amp;K:</strong> ${item.sk}</span>` : ''}
+                </div>
+            `;
+        }
+
         list.innerHTML += `
-            <li class="item-row" style="padding: 12px; margin-bottom: 8px;">
-                <div class="item-content">
-                    <div class="stat-icon" style="width: 40px; height: 40px; font-size: 1.2rem;">
+            <li class="item-row" style="padding: 12px; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
+                <div class="item-content" style="flex:1; min-width:0;">
+                    <div class="stat-icon" style="width: 40px; height: 40px; font-size: 1.2rem; flex-shrink:0;">
                         <i class="ri-store-2-line"></i>
                     </div>
-                    <div class="item-text">
-                        <span class="item-title" style="font-size: 1rem; display:flex; align-items:center; gap:8px;">
+                    <div class="item-text" style="min-width:0;">
+                        <span class="item-title" style="font-size: 1rem; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                             ${item.nama}
                             ${item.ig ? `<a href="https://instagram.com/${item.ig.replace('@', '')}" target="_blank" style="color:#d62976; font-size:1.1rem;" title="Buka Instagram"><i class="ri-instagram-line"></i></a>` : ''}
                         </span>
                         <span class="badge primary" style="width: fit-content; margin-top: 4px;">${item.kategori}</span>
+                        ${packagesHtml}
                     </div>
                 </div>
-                <div style="display: flex; gap: 4px; align-items: center;">
+                <div style="display: flex; gap: 4px; align-items: flex-start; flex-shrink:0;">
                     ${stateKey === 'vendorSeleksi' ?
                 `<button class="btn-icon" style="color: var(--success);" onclick="pindahFinal(${item.id})" title="Pilih sebagai Final"><i class="ri-check-double-line"></i></button>`
                 : ''}
@@ -1075,13 +1297,15 @@ function addVendor(type) {
     const nama = document.getElementById(namaId).value;
     const ig = document.getElementById(igId).value;
 
-    if (!kat || !nama) return showToast('Lengkapi data vendor');
+    if (!kat || !nama) return showToast('Lengkapi Kategori dan Nama Vendor');
 
+    const newId = generateId();
     appState[stateKey].push({
-        id: generateId(),
+        id: newId,
         kategori: kat,
         nama: nama,
-        ig: ig
+        ig: ig,
+        packages: []
     });
 
     document.getElementById(katId).value = '';
@@ -1089,6 +1313,9 @@ function addVendor(type) {
     document.getElementById(igId).value = '';
 
     saveState();
+    showToast('Vendor ditambahkan! Tambah paket harga via modal.');
+    // Auto-open edit modal so user can add packages
+    editItem(stateKey, newId);
 }
 
 function pindahFinal(id) {

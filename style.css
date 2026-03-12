@@ -937,7 +937,10 @@ input:focus, select:focus {
     background-color: var(--bg-card);
     border-radius: var(--radius-md);
     width: 90%;
-    max-width: 500px;
+    max-width: 520px;
+    max-height: 88vh;
+    display: flex;
+    flex-direction: column;
     box-shadow: var(--shadow-md);
     border: 1px solid var(--border);
     animation: fadeUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
@@ -949,6 +952,7 @@ input:focus, select:focus {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-shrink: 0;
 }
 
 .modal-header h3 {
@@ -975,7 +979,14 @@ input:focus, select:focus {
     display: flex;
     flex-direction: column;
     gap: 16px;
+    overflow-y: auto;
+    flex: 1;
 }
+
+/* Scrollbar for modal body */
+.modal-body::-webkit-scrollbar { width: 5px; }
+.modal-body::-webkit-scrollbar-track { background: transparent; }
+.modal-body::-webkit-scrollbar-thumb { background-color: var(--border); border-radius: 10px; }
 
 .modal-body label {
     font-size: 0.9rem;
@@ -996,4 +1007,5 @@ input:focus, select:focus {
     display: flex;
     justify-content: flex-end;
     gap: 12px;
+    flex-shrink: 0;
 }
