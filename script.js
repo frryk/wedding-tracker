@@ -64,6 +64,7 @@ let currentDeleteId = null;
 // Temp packages array for vendor edit modal
 let currentVendorPackages = [];
 let currentEditPackageIdx = -1; // index of package being edited inline
+let vendorSeleksiPage = 1;   // pagination state for vendor kandidat
 
 // Listen to Firebase Realtime Database
 onValue(ref(db, 'weddingTrackerData'), (snapshot) => {
@@ -259,6 +260,7 @@ window.addBudget = addBudget;
 window.addSeserahan = addSeserahan;
 window.addVendor = addVendor;
 window.pindahFinal = pindahFinal;
+window.pindahKandidat = pindahKandidat;
 window.addJobdesk = addJobdesk;
 window.addCatering = addCatering;
 window.addSimpleItem = addSimpleItem;
@@ -277,6 +279,7 @@ window.removePackageFromModal = removePackageFromModal;
 window.editPackageInModal = editPackageInModal;
 window.savePackageEdit = savePackageEdit;
 window.cancelPackageEdit = cancelPackageEdit;
+window.setVendorSeleksiPage = setVendorSeleksiPage;
 
 // ====== Render Functions ======
 
@@ -1204,7 +1207,19 @@ function renderVendor(stateKey, elementId) {
     const list = document.getElementById(elementId);
     list.innerHTML = '';
 
-    appState[stateKey].forEach(item => {
+    const PAGE_SIZE = 5;
+    const allItems = appState[stateKey];
+    let itemsToRender = allItems;
+
+    // Pagination only for vendorSeleksi
+    if (stateKey === 'vendorSeleksi') {
+        const totalPages = Math.max(1, Math.ceil(allItems.length / PAGE_SIZE));
+        // Clamp page
+        if (vendorSeleksiPage > totalPages) vendorSeleksiPage = totalPages;
+        const start = (vendorSeleksiPage - 1) * PAGE_SIZE;
+        itemsToRender = allItems.slice(start, start + PAGE_SIZE);
+    }
+    itemsToRender.forEach(item => {
         const packages = item.packages || [];
         // Legacy single-field fallback (for items not yet edited)
         const hasLegacy = !item.packages && (item.harga || item.fasilitas || item.sk);
@@ -1252,8 +1267,8 @@ function renderVendor(stateKey, elementId) {
                 </div>
                 <div style="display: flex; gap: 4px; align-items: flex-start; flex-shrink:0;">
                     ${stateKey === 'vendorSeleksi' ?
-                `<button class="btn-icon" style="color: var(--success);" onclick="pindahFinal(${item.id})" title="Pilih sebagai Final"><i class="ri-check-double-line"></i></button>`
-                : ''}
+                `<button class="btn-icon" style="color: var(--success);" onclick="pindahFinal(${item.id})" title="Pindah ke Vendor Terpilih"><i class="ri-check-double-line"></i></button>`
+                : `<button class="btn-icon" style="color: var(--warning);" onclick="pindahKandidat(${item.id})" title="Kembalikan ke Vendor Kandidat"><i class="ri-arrow-go-back-line"></i></button>`}
                     <button class="btn-icon edit" onclick="editItem('${stateKey}', ${item.id})"><i class="ri-edit-line"></i></button>
                     <button class="btn-icon delete" onclick="deleteItem('${stateKey}', ${item.id})"><i class="ri-delete-bin-line"></i></button>
                 </div>
@@ -1261,9 +1276,40 @@ function renderVendor(stateKey, elementId) {
         `;
     });
 
+    // Render pagination controls for vendorSeleksi
+    if (stateKey === 'vendorSeleksi') {
+        const totalPages = Math.max(1, Math.ceil(allItems.length / PAGE_SIZE));
+        const pagDiv = document.getElementById('paginasiVendorSeleksi');
+        if (pagDiv) {
+            if (totalPages <= 1) {
+                pagDiv.innerHTML = '';
+            } else {
+                let pages = '';
+                for (let p = 1; p <= totalPages; p++) {
+                    pages += `<button class="pag-btn ${p === vendorSeleksiPage ? 'pag-btn-active' : ''}" onclick="setVendorSeleksiPage(${p})">${p}</button>`;
+                }
+                pagDiv.innerHTML = `
+                    <div class="pag-controls">
+                        <button class="pag-btn" onclick="setVendorSeleksiPage(${vendorSeleksiPage - 1})" ${vendorSeleksiPage <= 1 ? 'disabled' : ''}><i class="ri-arrow-left-s-line"></i></button>
+                        ${pages}
+                        <button class="pag-btn" onclick="setVendorSeleksiPage(${vendorSeleksiPage + 1})" ${vendorSeleksiPage >= totalPages ? 'disabled' : ''}><i class="ri-arrow-right-s-line"></i></button>
+                    </div>
+                    <p class="pag-info">${allItems.length} vendor &bull; Halaman ${vendorSeleksiPage} / ${totalPages}</p>
+                `;
+            }
+        }
+    }
+
     if (stateKey === 'vendorFinal') {
         populateJobdeskVendorSelect();
     }
+}
+
+function setVendorSeleksiPage(page) {
+    const PAGE_SIZE = 5;
+    const totalPages = Math.max(1, Math.ceil(appState.vendorSeleksi.length / PAGE_SIZE));
+    vendorSeleksiPage = Math.max(1, Math.min(page, totalPages));
+    renderVendor('vendorSeleksi', 'listVendorSeleksi');
 }
 
 function populateJobdeskVendorSelect() {
@@ -1327,6 +1373,18 @@ function pindahFinal(id) {
         appState.vendorSeleksi.splice(itemIndex, 1);
         saveState();
         showToast('Vendor dipindah ke Final');
+    }
+}
+
+function pindahKandidat(id) {
+    if (!isLoaded) return;
+    const itemIndex = appState.vendorFinal.findIndex(i => i.id == id);
+    if (itemIndex > -1) {
+        const item = appState.vendorFinal[itemIndex];
+        appState.vendorSeleksi.push(item);
+        appState.vendorFinal.splice(itemIndex, 1);
+        saveState();
+        showToast('Vendor dikembalikan ke Kandidat');
     }
 }
 

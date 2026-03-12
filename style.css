@@ -1009,3 +1009,48 @@ input:focus, select:focus {
     gap: 12px;
     flex-shrink: 0;
 }
+
+/* ===== Vendor Kandidat Pagination ===== */
+.pag-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+}
+.pag-btn {
+    min-width: 34px;
+    height: 34px;
+    padding: 0 8px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-muted);
+    font-family: var(--font-main);
+    font-size: 0.88rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+.pag-btn:hover:not(:disabled) {
+    background: var(--primary-light);
+    color: var(--primary-dark);
+    border-color: var(--primary);
+}
+.pag-btn-active {
+    background: var(--primary) !important;
+    color: white !important;
+    border-color: var(--primary) !important;
+}
+.pag-btn:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+.pag-info {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-top: 6px;
+}
