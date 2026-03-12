@@ -65,6 +65,7 @@ let currentDeleteId = null;
 let currentVendorPackages = [];
 let currentEditPackageIdx = -1; // index of package being edited inline
 let vendorSeleksiPage = 1;   // pagination state for vendor kandidat
+let undanganPage = 1;        // pagination state for list undangan
 
 // Listen to Firebase Realtime Database
 onValue(ref(db, 'weddingTrackerData'), (snapshot) => {
@@ -280,6 +281,9 @@ window.editPackageInModal = editPackageInModal;
 window.savePackageEdit = savePackageEdit;
 window.cancelPackageEdit = cancelPackageEdit;
 window.setVendorSeleksiPage = setVendorSeleksiPage;
+window.setUndanganPage = setUndanganPage;
+window.exportUndanganCSV = exportUndanganCSV;
+window.printUndangan = printUndangan;
 
 // ====== Render Functions ======
 
@@ -1519,31 +1523,37 @@ function renderUndangan() {
     const tbody = document.getElementById('tableUndangan');
     tbody.innerHTML = '';
 
-    let tTotal = 0;
-    let tHadir = 0;
-    let tTidak = 0;
-    let tCpw = 0;
-    let tCpp = 0;
+    const PAGE_SIZE = 10;
+    const allItems = appState.undangan;
+    const totalPages = Math.max(1, Math.ceil(allItems.length / PAGE_SIZE));
+    if (undanganPage > totalPages) undanganPage = totalPages;
+    const start = (undanganPage - 1) * PAGE_SIZE;
+    const pageItems = allItems.slice(start, start + PAGE_SIZE);
 
-    appState.undangan.forEach(item => {
+    let tTotal = 0, tHadir = 0, tTidak = 0, tCpw = 0, tCpp = 0;
+
+    // Count ALL items for stats (not just current page)
+    allItems.forEach(item => {
         const qty = Number(item.jumlah);
         tTotal += qty;
-        
-        // Count pihak
-        const pihak = item.pihak || 'CPW'; // Default if null for old data
+        const pihak = item.pihak || 'CPW';
         if (pihak === 'CPW') tCpw += qty;
         if (pihak === 'CPP') tCpp += qty;
-
         if (item.konfirmasi === 'Hadir') tHadir += qty;
         if (item.konfirmasi === 'Tidak Hadir') tTidak += qty;
+    });
 
-        const badgePihak = pihak === 'CPW' 
-            ? `<span class="badge" style="background: rgba(233, 30, 99, 0.1); color: #e91e63;">CPW</span>` 
+    // Render only page items
+    pageItems.forEach(item => {
+        const pihak = item.pihak || 'CPW';
+        const badgePihak = pihak === 'CPW'
+            ? `<span class="badge" style="background: rgba(233, 30, 99, 0.1); color: #e91e63;">CPW</span>`
             : `<span class="badge" style="background: rgba(33, 150, 243, 0.1); color: #2196f3;">CPP</span>`;
-
-        const badgeKonfir = item.konfirmasi === 'Hadir' ? `<span class="badge success"><i class="ri-check-line"></i> Hadir</span>` :
-            (item.konfirmasi === 'Tidak Hadir' ? `<span class="badge danger"><i class="ri-close-line"></i> Tidak Hadir</span>` : `<span class="badge warning">Pending</span>`);
-
+        const badgeKonfir = item.konfirmasi === 'Hadir'
+            ? `<span class="badge success"><i class="ri-check-line"></i> Hadir</span>`
+            : (item.konfirmasi === 'Tidak Hadir'
+                ? `<span class="badge danger"><i class="ri-close-line"></i> Tidak Hadir</span>`
+                : `<span class="badge warning">Pending</span>`);
         tbody.innerHTML += `
             <tr>
                 <td><strong>${item.nama}</strong></td>
@@ -1570,13 +1580,107 @@ function renderUndangan() {
         `;
     });
 
+    // Update stats
     document.getElementById('totalUndangan').textContent = tTotal;
     document.getElementById('totalHadir').textContent = tHadir;
     document.getElementById('totalTidakHadir').textContent = tTidak;
     const cwEl = document.getElementById('totalCpw');
-    if(cwEl) cwEl.textContent = tCpw;
+    if (cwEl) cwEl.textContent = tCpw;
     const cpEl = document.getElementById('totalCpp');
-    if(cpEl) cpEl.textContent = tCpp;
+    if (cpEl) cpEl.textContent = tCpp;
+
+    // Info text
+    const infoEl = document.getElementById('undanganInfo');
+    if (infoEl) infoEl.textContent = `${allItems.length} tamu terdaftar`;
+
+    // Pagination controls
+    const pagDiv = document.getElementById('paginasiUndangan');
+    if (pagDiv) {
+        if (totalPages <= 1) {
+            pagDiv.innerHTML = '';
+        } else {
+            let pages = '';
+            for (let p = 1; p <= totalPages; p++) {
+                pages += `<button class="pag-btn ${p === undanganPage ? 'pag-btn-active' : ''}" onclick="setUndanganPage(${p})">${p}</button>`;
+            }
+            pagDiv.innerHTML = `
+                <div class="pag-controls">
+                    <button class="pag-btn" onclick="setUndanganPage(${undanganPage - 1})" ${undanganPage <= 1 ? 'disabled' : ''}><i class="ri-arrow-left-s-line"></i></button>
+                    ${pages}
+                    <button class="pag-btn" onclick="setUndanganPage(${undanganPage + 1})" ${undanganPage >= totalPages ? 'disabled' : ''}><i class="ri-arrow-right-s-line"></i></button>
+                </div>
+                <p class="pag-info">Menampilkan ${start + 1}–${Math.min(start + PAGE_SIZE, allItems.length)} dari ${allItems.length} tamu &bull; Halaman ${undanganPage} / ${totalPages}</p>
+            `;
+        }
+    }
+}
+
+function setUndanganPage(page) {
+    const totalPages = Math.max(1, Math.ceil(appState.undangan.length / 10));
+    undanganPage = Math.max(1, Math.min(page, totalPages));
+    renderUndangan();
+}
+
+function exportUndanganCSV() {
+    if (!appState.undangan || appState.undangan.length === 0) return showToast('Belum ada data undangan');
+    const rows = [['Nama Tamu', 'Pihak', 'Relasi', 'Jumlah Orang', 'Undangan Dikirim', 'Konfirmasi']];
+    appState.undangan.forEach(u => {
+        rows.push([
+            u.nama || '',
+            u.pihak || 'CPW',
+            u.relasi || '',
+            u.jumlah || 1,
+            u.dikirim ? 'Ya' : 'Belum',
+            u.konfirmasi || 'Pending'
+        ]);
+    });
+    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'list_undangan.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('CSV berhasil diunduh');
+}
+
+function printUndangan() {
+    if (!appState.undangan || appState.undangan.length === 0) return showToast('Belum ada data undangan');
+    const rows = appState.undangan.map((u, i) => `
+        <tr>
+            <td>${i + 1}</td>
+            <td><strong>${u.nama || ''}</strong></td>
+            <td>${u.pihak || 'CPW'}</td>
+            <td>${u.relasi || ''}</td>
+            <td style="text-align:center;">${u.jumlah || 1}</td>
+            <td style="text-align:center;">${u.dikirim ? '✔' : '–'}</td>
+            <td>${u.konfirmasi || 'Pending'}</td>
+        </tr>
+    `).join('');
+    const win = window.open('', '_blank');
+    win.document.write(`
+        <html><head><title>List Undangan</title>
+        <style>
+            body { font-family: Arial, sans-serif; font-size: 13px; padding: 20px; }
+            h2 { text-align:center; margin-bottom: 16px; }
+            table { width:100%; border-collapse:collapse; }
+            th, td { border:1px solid #ccc; padding:7px 10px; text-align:left; }
+            th { background:#f5f5f5; font-weight:600; }
+            tr:nth-child(even) { background:#fafafa; }
+            .footer { text-align:right; margin-top:12px; font-size:11px; color:#888; }
+        </style></head>
+        <body>
+        <h2>Daftar Tamu Undangan</h2>
+        <table>
+            <thead><tr><th>#</th><th>Nama Tamu</th><th>Pihak</th><th>Relasi</th><th>Jml</th><th>Dikirim</th><th>Konfirmasi</th></tr></thead>
+            <tbody>${rows}</tbody>
+        </table>
+        <p class="footer">Dicetak: ${new Date().toLocaleString('id-ID')}</p>
+        <script>window.print(); window.onafterprint = () => window.close();<\/script>
+        </body></html>
+    `);
+    win.document.close();
 }
 
 function addUndangan() {

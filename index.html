@@ -516,6 +516,14 @@
                         </div>
                     </div>
                     <div class="card">
+                        <!-- Toolbar: export & print -->
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
+                            <span style="font-size:0.9rem; color:var(--text-muted);" id="undanganInfo">–</span>
+                            <div style="display:flex; gap:8px;">
+                                <button onclick="exportUndanganCSV()" class="btn-secondary" style="padding:8px 14px; font-size:0.88rem;"><i class="ri-download-2-line"></i> Export CSV</button>
+                                <button onclick="printUndangan()" class="btn-secondary" style="padding:8px 14px; font-size:0.88rem;"><i class="ri-printer-line"></i> Print</button>
+                            </div>
+                        </div>
                         <div class="table-responsive">
                             <table class="data-table">
                                 <thead>
@@ -534,6 +542,8 @@
                                 </tbody>
                             </table>
                         </div>
+                        <!-- Pagination -->
+                        <div id="paginasiUndangan"></div>
                         <div class="card mt-4" style="background: var(--bg-main); border: 1px solid var(--border);">
                             <h3 style="font-size: 1.1rem; margin-bottom: 16px;">Tambah Tamu Undangan</h3>
                             <div class="grid-3" style="gap: 16px; margin-bottom: 16px;">
@@ -648,7 +658,7 @@
         </div>
     </div>
 
-    <script type="module" src="script.js?v=13"></script>
+    <script type="module" src="script.js?v=14"></script>
 </body>
 
 </html>
