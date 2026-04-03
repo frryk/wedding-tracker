@@ -41,6 +41,7 @@
                     Seserahan</button>
                 <button class="nav-btn" data-target="vendor"><i class="ri-store-2-line"></i> List Vendor</button>
                 <button class="nav-btn" data-target="jobdesk"><i class="ri-task-line"></i> Job Desk Vendor</button>
+                <button class="nav-btn" data-target="jobdeskteman"><i class="ri-user-smile-line"></i> Job Desk Teman</button>
                 <button class="nav-btn" data-target="catering"><i class="ri-restaurant-line"></i> List Catering</button>
                 <button class="nav-btn" data-target="undangan"><i class="ri-mail-send-line"></i> List Undangan</button>
             </nav>
@@ -430,6 +431,28 @@
                             <textarea id="jobdeskTugas" placeholder="Rincian Tugas (bisa beberapa baris)..."
                                 style="width:100%; border-radius:6px; border:1px solid var(--border); padding:12px; font-family:inherit; min-height:100px; resize:vertical; outline:none;"></textarea>
                             <button onclick="addJobdesk()" class="btn-primary" style="align-self: flex-start;"><i
+                                    class="ri-add-line"></i>
+                                Tambah</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 7.1 Job Desk Teman -->
+                <section id="jobdeskteman" class="tab-content animate-fade-up">
+                    <div class="card header-card">
+                        <h2>Job Desk Teman</h2>
+                        <p>Rincian tugas dan tanggung jawab teman untuk membantu acara pernikahan.</p>
+                    </div>
+                    <div class="jobdesk-container" id="jobdeskTemanContainer">
+                        <!-- Populated by JS -->
+                    </div>
+                    <div class="card add-timeline-card mt-4">
+                        <h3>Tambah Tugas Teman Baru</h3>
+                        <div class="add-item-form" style="display:flex; flex-direction:column; gap:12px;">
+                            <input type="text" id="jobdeskTemanNama" placeholder="Nama Teman" style="padding:10px; border-radius:6px; border:1px solid var(--border);">
+                            <textarea id="jobdeskTemanTugas" placeholder="Rincian Tugas (bisa beberapa baris)..."
+                                style="width:100%; border-radius:6px; border:1px solid var(--border); padding:12px; font-family:inherit; min-height:100px; resize:vertical; outline:none;"></textarea>
+                            <button onclick="addJobdeskTeman()" class="btn-primary" style="align-self: flex-start;"><i
                                     class="ri-add-line"></i>
                                 Tambah</button>
                         </div>

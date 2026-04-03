@@ -43,6 +43,7 @@ const defaultState = {
     vendorSeleksi: [],
     vendorFinal: [],
     jobdesk: [],
+    jobdeskTeman: [],
     catering: [],
     undangan: [],
     weddingDate: null,
@@ -83,6 +84,7 @@ onValue(ref(db, 'weddingTrackerData'), (snapshot) => {
             vendorSeleksi: data.vendorSeleksi || [],
             vendorFinal: data.vendorFinal || [],
             jobdesk: data.jobdesk || [],
+            jobdeskTeman: data.jobdeskTeman || [],
             catering: data.catering || [],
             undangan: data.undangan || [],
             weddingDate: data.weddingDate || '',
@@ -263,6 +265,7 @@ window.addVendor = addVendor;
 window.pindahFinal = pindahFinal;
 window.pindahKandidat = pindahKandidat;
 window.addJobdesk = addJobdesk;
+window.addJobdeskTeman = addJobdeskTeman;
 window.addCatering = addCatering;
 window.addSimpleItem = addSimpleItem;
 window.populateJobdeskVendorSelect = populateJobdeskVendorSelect;
@@ -299,6 +302,7 @@ function renderAll() {
     renderVendor('vendorSeleksi', 'listVendorSeleksi');
     renderVendor('vendorFinal', 'listVendorFinal');
     renderJobdesk();
+    renderJobdeskTeman();
     renderCatering();
     renderUndangan();
     updateCountdown();
@@ -662,6 +666,18 @@ function editItem(stateKey, id) {
                 </div>
             `;
             break;
+        case 'jobdeskTeman':
+            html = `
+                <div class="form-group">
+                    <label>Nama Teman</label>
+                    <input type="text" id="editJobTemanNama" value="${item.nama}">
+                </div>
+                <div class="form-group">
+                    <label>Job Desk / Tugas</label>
+                    <textarea id="editJobTemanTugas" style="width:100%; border-radius:6px; border:1px solid var(--border); padding:10px; font-family:inherit; min-height:80px; resize:vertical;">${item.tugas}</textarea>
+                </div>
+            `;
+            break;
         case 'catering':
             html = `
                 <div class="form-group">
@@ -770,6 +786,10 @@ function saveEditedItem() {
             case 'jobdesk':
                 item.vendor = document.getElementById('editJobVendor').value.trim() || item.vendor;
                 item.tugas = document.getElementById('editJobTugas').value.trim() || item.tugas;
+                break;
+            case 'jobdeskTeman':
+                item.nama = document.getElementById('editJobTemanNama').value.trim() || item.nama;
+                item.tugas = document.getElementById('editJobTemanTugas').value.trim() || item.tugas;
                 break;
             case 'catering':
                 item.nama = document.getElementById('editCatNama').value.trim() || item.nama;
@@ -1444,6 +1464,60 @@ function addJobdesk() {
 
     saveState();
     showToast('Tugas ditambahkan');
+}
+
+// 7.1 Job Desk Teman
+function renderJobdeskTeman() {
+    const container = document.getElementById('jobdeskTemanContainer');
+    if(!container) return;
+    container.innerHTML = '';
+
+    const grouped = appState.jobdeskTeman.reduce((acc, curr) => {
+        if (!acc[curr.nama]) acc[curr.nama] = [];
+        acc[curr.nama].push(curr);
+        return acc;
+    }, {});
+
+    for (const [nama, tasks] of Object.entries(grouped)) {
+        let tasksHtml = tasks.map(t => {
+            const formattedTugas = (t.tugas || '').replace(/\n/g, '<br>');
+            return `
+            <li style="margin-bottom: 8px; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;">
+                <span style="flex:1; line-height: 1.5;"><i class="ri-arrow-right-s-line" style="color: var(--primary);"></i> ${formattedTugas}</span>
+                <div style="display: flex; gap: 4px; align-items: center; margin-top:2px;">
+                    <button class="btn-icon edit" style="width:24px;height:24px;font-size:0.9rem;" onclick="editItem('jobdeskTeman', ${t.id})"><i class="ri-edit-line"></i></button>
+                    <button class="btn-icon delete" style="width:24px;height:24px;font-size:0.9rem;" onclick="deleteItem('jobdeskTeman', ${t.id})"><i class="ri-close-line"></i></button>
+            </li>
+        `;
+        }).join('');
+
+        container.innerHTML += `
+            <div class="card" style="margin-bottom: 16px;">
+                <h3 class="accent-title" style="margin-bottom: 12px;"><i class="ri-user-smile-line"></i> ${nama}</h3>
+                <ul style="list-style: none; padding-left: 8px;">${tasksHtml}</ul>
+            </div>
+        `;
+    }
+}
+
+function addJobdeskTeman() {
+    if (!isLoaded) return;
+    const nama = document.getElementById('jobdeskTemanNama').value;
+    const tugas = document.getElementById('jobdeskTemanTugas').value;
+
+    if (!nama || !tugas) return showToast('Lengkapi nama teman dan tugasnya');
+
+    appState.jobdeskTeman.push({
+        id: generateId(),
+        nama: nama,
+        tugas: tugas
+    });
+
+    document.getElementById('jobdeskTemanNama').value = '';
+    document.getElementById('jobdeskTemanTugas').value = '';
+
+    saveState();
+    showToast('Tugas Teman ditambahkan');
 }
 
 // 8. List Catering/Resto
