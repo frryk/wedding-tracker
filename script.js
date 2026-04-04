@@ -170,7 +170,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Navigation Logic
     const navBtns = document.querySelectorAll('.nav-btn');
     const tabContents = document.querySelectorAll('.tab-content');
-    const pageTitle = document.getElementById('pageTitle');
 
     navBtns.forEach(btn => {
         btn.addEventListener('click', (e) => {
@@ -180,8 +179,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const target = btn.getAttribute('data-target');
             btn.classList.add('active');
             document.getElementById(target).classList.add('active');
-
-            pageTitle.textContent = btn.textContent.trim();
 
             if (window.innerWidth <= 992) {
                 filterMobileToggle(false);
