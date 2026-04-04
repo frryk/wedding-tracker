@@ -44,6 +44,8 @@ const defaultState = {
     vendorFinal: [],
     jobdesk: [],
     jobdeskTeman: [],
+    masterJobdeskTeman: [],
+    masterNamaTeman: [],
     catering: [],
     undangan: [],
     weddingDate: null,
@@ -85,6 +87,8 @@ onValue(ref(db, 'weddingTrackerData'), (snapshot) => {
             vendorFinal: data.vendorFinal || [],
             jobdesk: data.jobdesk || [],
             jobdeskTeman: data.jobdeskTeman || [],
+            masterJobdeskTeman: data.masterJobdeskTeman || [],
+            masterNamaTeman: data.masterNamaTeman || [],
             catering: data.catering || [],
             undangan: data.undangan || [],
             weddingDate: data.weddingDate || '',
@@ -266,6 +270,8 @@ window.pindahFinal = pindahFinal;
 window.pindahKandidat = pindahKandidat;
 window.addJobdesk = addJobdesk;
 window.addJobdeskTeman = addJobdeskTeman;
+window.addMasterJobdeskTeman = addMasterJobdeskTeman;
+window.addMasterNamaTeman = addMasterNamaTeman;
 window.addCatering = addCatering;
 window.addSimpleItem = addSimpleItem;
 window.populateJobdeskVendorSelect = populateJobdeskVendorSelect;
@@ -302,6 +308,9 @@ function renderAll() {
     renderVendor('vendorSeleksi', 'listVendorSeleksi');
     renderVendor('vendorFinal', 'listVendorFinal');
     renderJobdesk();
+    renderMasterJobdeskTeman();
+    renderMasterNamaTeman();
+    populateJobdeskTemanSelects();
     renderJobdeskTeman();
     renderCatering();
     renderUndangan();
@@ -502,6 +511,22 @@ function editItem(stateKey, id) {
                 </div>
             `;
             break;
+        case 'masterJobdeskTeman':
+            html = `
+                <div class="form-group">
+                    <label>Pekerjaan</label>
+                    <input type="text" id="editMasterJobdeskTeman" value="${item.title}">
+                </div>
+            `;
+            break;
+        case 'masterNamaTeman':
+            html = `
+                <div class="form-group">
+                    <label>Nama Panitia</label>
+                    <input type="text" id="editMasterNamaTeman" value="${item.title}">
+                </div>
+            `;
+            break;
         case 'budget':
             const kats = ['Venue', 'Konsumsi', 'Attire', 'Entertainment', 'Transport', 'Seserahan', 'Tamu', 'KUA'];
             const katOptions = kats.map(k => `<option value="${k}" ${item.kategori === k ? 'selected' : ''}>${k}</option>`).join('');
@@ -667,14 +692,25 @@ function editItem(stateKey, id) {
             `;
             break;
         case 'jobdeskTeman':
+            const namaOptions = (appState.masterNamaTeman || []).map(n => 
+                `<option value="${n.title}" ${item.nama === n.title ? 'selected' : ''}>${n.title}</option>`
+            ).join('');
+            const tugasOptions = (appState.masterJobdeskTeman || []).map(t => 
+                `<option value="${t.title}" ${item.tugas === t.title ? 'selected' : ''}>${t.title}</option>`
+            ).join('');
+
             html = `
                 <div class="form-group">
-                    <label>Nama Teman</label>
-                    <input type="text" id="editJobTemanNama" value="${item.nama}">
+                    <label>Nama Panitia</label>
+                    <select id="editJobTemanNama" style="width:100%; padding:10px; border-radius:6px; border:1px solid var(--border);">
+                        ${namaOptions || `<option value="${item.nama}" selected>${item.nama}</option>`}
+                    </select>
                 </div>
                 <div class="form-group">
                     <label>Job Desk / Tugas</label>
-                    <textarea id="editJobTemanTugas" style="width:100%; border-radius:6px; border:1px solid var(--border); padding:10px; font-family:inherit; min-height:80px; resize:vertical;">${item.tugas}</textarea>
+                    <select id="editJobTemanTugas" style="width:100%; padding:10px; border-radius:6px; border:1px solid var(--border);">
+                        ${tugasOptions || `<option value="${item.tugas}" selected>${item.tugas}</option>`}
+                    </select>
                 </div>
             `;
             break;
@@ -751,6 +787,14 @@ function saveEditedItem() {
             case 'berkasCPW':
             case 'berkasCPP':
                 item.title = document.getElementById('editBerkasTitle').value.trim() || item.title;
+                break;
+            case 'masterJobdeskTeman':
+                item.title = document.getElementById('editMasterJobdeskTeman').value.trim() || item.title;
+                populateJobdeskTemanSelects();
+                break;
+            case 'masterNamaTeman':
+                item.title = document.getElementById('editMasterNamaTeman').value.trim() || item.title;
+                populateJobdeskTemanSelects();
                 break;
             case 'budget':
                 item.kategori = document.getElementById('editBudKategori').value.trim() || item.kategori;
@@ -1500,12 +1544,94 @@ function renderJobdeskTeman() {
     }
 }
 
+function populateJobdeskTemanSelects() {
+    const namaSelect = document.getElementById('jobdeskTemanNama');
+    const tugasSelect = document.getElementById('jobdeskTemanTugas');
+    if (!namaSelect || !tugasSelect || !appState) return;
+
+    let namaHtml = '<option value="">-- Pilih Panitia --</option>';
+    if (appState.masterNamaTeman) {
+        appState.masterNamaTeman.forEach(n => {
+            namaHtml += `<option value="${n.title}">${n.title}</option>`;
+        });
+    }
+    namaSelect.innerHTML = namaHtml;
+
+    let tugasHtml = '<option value="">-- Pilih Pekerjaan --</option>';
+    if (appState.masterJobdeskTeman) {
+        appState.masterJobdeskTeman.forEach(t => {
+            tugasHtml += `<option value="${t.title}">${t.title}</option>`;
+        });
+    }
+    tugasSelect.innerHTML = tugasHtml;
+}
+
+function renderMasterJobdeskTeman() {
+    const list = document.getElementById('listMasterJobdeskTeman');
+    if (!list) return;
+    list.innerHTML = '';
+    (appState.masterJobdeskTeman || []).forEach(item => {
+        list.innerHTML += `
+            <li class="item-row">
+                <div class="item-content">
+                    <span class="item-title" style="font-size: 0.95rem;">${item.title}</span>
+                </div>
+                <div class="action-btns" style="display:flex; gap: 4px; align-items:center;">
+                    <button class="btn-icon edit" style="padding:4px; font-size:1rem;" onclick="editItem('masterJobdeskTeman', ${item.id})"><i class="ri-edit-line"></i></button>
+                    <button class="btn-icon delete" style="padding:4px; font-size:1rem;" onclick="deleteItem('masterJobdeskTeman', ${item.id})"><i class="ri-close-line"></i></button>
+                </div>
+            </li>
+        `;
+    });
+}
+
+function addMasterJobdeskTeman() {
+    if (!isLoaded) return;
+    const input = document.getElementById('inputMasterJobdeskTeman');
+    if (!input.value.trim()) return showToast('Pekerjaan tidak boleh kosong');
+
+    appState.masterJobdeskTeman.push({ id: generateId(), title: input.value.trim() });
+    input.value = '';
+    saveState();
+    showToast('Pekerjaan ditambahkan');
+}
+
+function renderMasterNamaTeman() {
+    const list = document.getElementById('listMasterNamaTeman');
+    if (!list) return;
+    list.innerHTML = '';
+    (appState.masterNamaTeman || []).forEach(item => {
+        list.innerHTML += `
+            <li class="item-row">
+                <div class="item-content">
+                    <span class="item-title" style="font-size: 0.95rem;">${item.title}</span>
+                </div>
+                <div class="action-btns" style="display:flex; gap: 4px; align-items:center;">
+                    <button class="btn-icon edit" style="padding:4px; font-size:1rem;" onclick="editItem('masterNamaTeman', ${item.id})"><i class="ri-edit-line"></i></button>
+                    <button class="btn-icon delete" style="padding:4px; font-size:1rem;" onclick="deleteItem('masterNamaTeman', ${item.id})"><i class="ri-close-line"></i></button>
+                </div>
+            </li>
+        `;
+    });
+}
+
+function addMasterNamaTeman() {
+    if (!isLoaded) return;
+    const input = document.getElementById('inputMasterNamaTeman');
+    if (!input.value.trim()) return showToast('Nama panitia tidak boleh kosong');
+
+    appState.masterNamaTeman.push({ id: generateId(), title: input.value.trim() });
+    input.value = '';
+    saveState();
+    showToast('Panitia ditambahkan');
+}
+
 function addJobdeskTeman() {
     if (!isLoaded) return;
     const nama = document.getElementById('jobdeskTemanNama').value;
     const tugas = document.getElementById('jobdeskTemanTugas').value;
 
-    if (!nama || !tugas) return showToast('Lengkapi nama teman dan tugasnya');
+    if (!nama || !tugas) return showToast('Pilih nama panitia dan pekerjaannya');
 
     appState.jobdeskTeman.push({
         id: generateId(),
@@ -1517,7 +1643,7 @@ function addJobdeskTeman() {
     document.getElementById('jobdeskTemanTugas').value = '';
 
     saveState();
-    showToast('Tugas Teman ditambahkan');
+    showToast('Tugas Panitia ditambahkan');
 }
 
 // 8. List Catering/Resto
