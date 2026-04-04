@@ -25,13 +25,9 @@
             </div>
 
             <nav class="sidebar-nav">
-                <!-- Countdown Widget -->
-                <div class="sidebar-countdown" onclick="openDateModal()">
-                    <div class="countdown-title"><i class="ri-heart-pulse-line"></i> Menuju Hari H</div>
-                    <div class="countdown-timer" id="countdownTimer">Atur Tanggal</div>
-                </div>
-
-                <button class="nav-btn active" data-target="persiapan"><i class="ri-list-check-2"></i> Persiapan
+                <button class="nav-btn active" data-target="dashboard"><i class="ri-dashboard-3-line"></i>
+                    Dashboard</button>
+                <button class="nav-btn" data-target="persiapan"><i class="ri-list-check-2"></i> Persiapan
                     Menikah</button>
                 <button class="nav-btn" data-target="timeline"><i class="ri-calendar-event-line"></i> Timeline
                     Persiapan</button>
@@ -41,20 +37,13 @@
                     Seserahan</button>
                 <button class="nav-btn" data-target="vendor"><i class="ri-store-2-line"></i> List Vendor</button>
                 <button class="nav-btn" data-target="jobdesk"><i class="ri-task-line"></i> Job Desk Vendor</button>
-                <button class="nav-btn" data-target="jobdeskteman"><i class="ri-user-smile-line"></i> Job Desk Panitia</button>
+                <button class="nav-btn" data-target="jobdeskteman"><i class="ri-user-smile-line"></i> Job Desk
+                    Panitia</button>
+                <button class="nav-btn" data-target="rundown"><i class="ri-time-line"></i> Rundown Acara</button>
                 <button class="nav-btn" data-target="catering"><i class="ri-restaurant-line"></i> List Catering</button>
                 <button class="nav-btn" data-target="undangan"><i class="ri-mail-send-line"></i> List Undangan</button>
             </nav>
 
-            <div class="sidebar-footer">
-                <div class="progress-widget">
-                    <span class="progress-title">Overall Progress</span>
-                    <div class="progress-bar-bg">
-                        <div class="progress-bar-fill" id="overallProgress" style="width: 0%"></div>
-                    </div>
-                    <span class="progress-text" id="overallText">0%</span>
-                </div>
-            </div>
         </aside>
 
         <!-- Main Content -->
@@ -62,16 +51,124 @@
             <header class="topbar">
                 <button class="mobile-toggle" id="mobileToggle"><i class="ri-menu-2-line"></i></button>
                 <h1 id="pageTitle" class="animate-fade-in">Persiapan Menikah</h1>
-                <div class="header-actions">
-                    <button class="icon-btn" id="themeToggle" title="Toggle Dark Mode"><i
-                            class="ri-moon-line"></i></button>
+                <div class="header-actions" style="display:flex; align-items:center; gap:16px;">
+                    <!-- Overall Progress -->
+                    <div class="topbar-progress"
+                        style="display:flex; flex-direction:column; align-items:flex-end; gap:4px; margin-right: 8px;">
+                        <span style="font-size: 0.75rem; color: var(--text-muted); line-height:1;">Progress: <span
+                                id="overallText" style="font-weight:600; color:var(--text-main);">0%</span></span>
+                        <div
+                            style="width: 80px; height: 6px; background: var(--border); border-radius: 4px; overflow: hidden;">
+                            <div id="overallProgress"
+                                style="height: 100%; background: var(--primary); width: 0%; transition: width 0.3s ease;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Countdown -->
+                    <div class="topbar-countdown" onclick="openDateModal()"
+                        style="display:flex; flex-direction:column; align-items:flex-end; cursor: pointer; background: var(--bg-surface); padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border);">
+                        <div style="font-size: 0.7rem; color: var(--text-muted); line-height:1; margin-bottom:2px;"><i
+                                class="ri-heart-pulse-line" style="color:var(--primary);"></i> Hari H</div>
+                        <div id="countdownTimer"
+                            style="font-size: 0.85rem; font-weight: 600; color: var(--text-main); line-height:1;">Atur
+                            Tanggal</div>
+                    </div>
                 </div>
             </header>
 
             <div class="content-wrapper">
 
+                <!-- 0. Dashboard -->
+                <section id="dashboard" class="tab-content active animate-fade-up">
+                    <div class="card header-card">
+                        <h2>Dashboard Wedding Tracker</h2>
+                        <p>Ringkasan menyeluruh progres persiapan dari setiap sektor.</p>
+                    </div>
+
+                    <div class="grid-2 mb-4" style="gap:20px; display: grid;">
+                        <!-- Left Column (Stats) -->
+                        <div style="display:flex; flex-direction:column; gap:20px;">
+                            <!-- Checklists -->
+                            <div class="stat-card"
+                                style="flex-direction:row; justify-content:flex-start; align-items:center; gap:16px;">
+                                <div class="stat-icon" style="background:var(--bg-accent)"><i
+                                        class="ri-checkbox-circle-line"></i></div>
+                                <div>
+                                    <span
+                                        style="font-size:0.8rem; color:var(--text-muted); display:block; margin-bottom:2px;">Checklist
+                                        Selesai</span>
+                                    <h3 id="dashChecklist" style="color:var(--text-main);">0/0 <span
+                                            style="font-size:1rem; font-weight:normal; color:var(--text-muted);">(0%)</span>
+                                    </h3>
+                                </div>
+                            </div>
+
+                            <!-- Budget -->
+                            <div class="stat-card"
+                                style="flex-direction:row; justify-content:flex-start; align-items:center; gap:16px;">
+                                <div class="stat-icon" style="background:rgba(76, 175, 80, 0.1); color:#4caf50;"><i
+                                        class="ri-hand-coin-line"></i></div>
+                                <div>
+                                    <span
+                                        style="font-size:0.8rem; color:var(--text-muted); display:block; margin-bottom:2px;">Budget
+                                        Digunakan</span>
+                                    <h3 id="dashBudgetVal" style="color:var(--text-main);">Rp 0</h3>
+                                    <div id="dashBudgetPct" style="font-size:0.85rem; color:#4caf50; font-weight:500;">0%
+                                        dari Budget</div>
+                                </div>
+                            </div>
+
+                            <!-- Tamu -->
+                            <div class="stat-card"
+                                style="flex-direction:row; justify-content:flex-start; align-items:center; gap:16px;">
+                                <div class="stat-icon" style="background:rgba(233, 30, 99, 0.1); color:#e91e63;"><i
+                                        class="ri-group-line"></i></div>
+                                <div>
+                                    <span
+                                        style="font-size:0.8rem; color:var(--text-muted); display:block; margin-bottom:2px;">Konfirmasi
+                                        Hadir</span>
+                                    <h3 id="dashTamuVal" style="color:var(--text-main);">0 <span
+                                            style="font-size:1rem; font-weight:normal; color:var(--text-muted);">/ 0</span>
+                                    </h3>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Column (Vendor) -->
+                        <div>
+                            <div class="card p-4" style="height: 100%;">
+                                <h3 style="font-size:1.1rem; margin-bottom:16px;"><i class="ri-store-2-line"
+                                        style="color:var(--primary); margin-right:6px;"></i> Rekap Vendor & Catering</h3>
+                                <div
+                                    style="display:flex; justify-content:space-between; margin-bottom:8px; border-bottom:1px solid var(--border); padding-bottom:8px;">
+                                    <span>Vendor Kunci (Fix)</span>
+                                    <strong id="dashVendorFix">0</strong>
+                                </div>
+                                <div
+                                    style="display:flex; justify-content:space-between; margin-bottom:8px; border-bottom:1px solid var(--border); padding-bottom:8px;">
+                                    <span>Tugas Vendor Tercatat</span>
+                                    <strong id="dashVendorTugas">0</strong>
+                                </div>
+                                <div
+                                    style="display:flex; justify-content:space-between; margin-bottom:8px; border-bottom:1px solid var(--border); padding-bottom:8px;">
+                                    <span>Tugas Panitia Tercatat</span>
+                                    <strong id="dashPanitiaTugas">0</strong>
+                                </div>
+                                <div style="display:flex; justify-content:space-between;">
+                                    <span>Kandidat Catering (Test Food)</span>
+                                    <strong id="dashCateringTest">0 Teruji</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="exportSemuaKeExcel()" class="btn-primary"
+                        style="width:100%; justify-content:center; padding:12px; font-size:0.95rem; background:#217346; border-color:#217346; color:#fff;"><i
+                            class="ri-download-2-line"></i> Download Master Excel (.xlsx)</button>
+                </section>
+
                 <!-- 1. Persiapan Menikah -->
-                <section id="persiapan" class="tab-content active animate-fade-up">
+                <section id="persiapan" class="tab-content animate-fade-up">
                     <div class="card header-card">
                         <h2>Persiapan Pokok</h2>
                         <p>Daftar kebutuhan utama pernikahan seperti Mahar, Cincin, Seserahan dan lainnya.</p>
@@ -452,8 +549,10 @@
                                 <!-- Populated by JS -->
                             </ul>
                             <div class="add-item-form compact mt-3" style="display:flex; gap:8px;">
-                                <input type="text" id="inputMasterJobdeskTeman" placeholder="Tambah Pekerjaan..." style="flex:1;">
-                                <button onclick="addMasterJobdeskTeman()" class="btn-secondary"><i class="ri-add-line"></i></button>
+                                <input type="text" id="inputMasterJobdeskTeman" placeholder="Tambah Pekerjaan..."
+                                    style="flex:1;">
+                                <button onclick="addMasterJobdeskTeman()" class="btn-secondary"><i
+                                        class="ri-add-line"></i></button>
                             </div>
                         </div>
 
@@ -464,8 +563,10 @@
                                 <!-- Populated by JS -->
                             </ul>
                             <div class="add-item-form compact mt-3" style="display:flex; gap:8px;">
-                                <input type="text" id="inputMasterNamaTeman" placeholder="Tambah Nama Panitia..." style="flex:1;">
-                                <button onclick="addMasterNamaTeman()" class="btn-secondary"><i class="ri-add-line"></i></button>
+                                <input type="text" id="inputMasterNamaTeman" placeholder="Tambah Nama Panitia..."
+                                    style="flex:1;">
+                                <button onclick="addMasterNamaTeman()" class="btn-secondary"><i
+                                        class="ri-add-line"></i></button>
                             </div>
                         </div>
                     </div>
@@ -475,25 +576,98 @@
                         <h3>Pembagian Tugas Baru</h3>
                         <div class="add-item-form grid-2" style="gap:12px;">
                             <div class="form-group">
-                                <label style="font-size:0.85rem; font-weight:500; display:block; margin-bottom:4px;">Pilih Panitia</label>
-                                <select id="jobdeskTemanNama" style="width:100%; padding:10px; border-radius:6px; border:1px solid var(--border);">
+                                <label
+                                    style="font-size:0.85rem; font-weight:500; display:block; margin-bottom:4px;">Pilih
+                                    Panitia</label>
+                                <select id="jobdeskTemanNama"
+                                    style="width:100%; padding:10px; border-radius:6px; border:1px solid var(--border);">
                                     <option value="">-- Pilih Panitia --</option>
                                     <!-- Populated by JS -->
                                 </select>
                             </div>
                             <div class="form-group">
-                                <label style="font-size:0.85rem; font-weight:500; display:block; margin-bottom:4px;">Pilih Pekerjaan</label>
-                                <select id="jobdeskTemanTugas" style="width:100%; padding:10px; border-radius:6px; border:1px solid var(--border);">
+                                <label
+                                    style="font-size:0.85rem; font-weight:500; display:block; margin-bottom:4px;">Pilih
+                                    Pekerjaan</label>
+                                <select id="jobdeskTemanTugas"
+                                    style="width:100%; padding:10px; border-radius:6px; border:1px solid var(--border);">
                                     <option value="">-- Pilih Pekerjaan --</option>
                                     <!-- Populated by JS -->
                                 </select>
                             </div>
                         </div>
-                        <button onclick="addJobdeskTeman()" class="btn-primary mt-3"><i class="ri-add-line"></i> Tambah Tugas</button>
+                        <button onclick="addJobdeskTeman()" class="btn-primary mt-3"><i class="ri-add-line"></i> Tambah
+                            Tugas</button>
                     </div>
 
                     <div class="jobdesk-container mt-4" id="jobdeskTemanContainer">
                         <!-- Populated by JS -->
+                    </div>
+                </section>
+
+                <!-- 7.2 Rundown Acara -->
+                <section id="rundown" class="tab-content animate-fade-up">
+                    <div class="card header-card">
+                        <h2>Rundown Acara</h2>
+                        <p>Daftar kegiatan, waktu eksekusi, dan detail keterangan rundown.</p>
+                    </div>
+                    <div class="card">
+                        <div
+                            style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
+                            <span style="font-size:0.9rem; color:var(--text-muted);" id="rundownInfo">–</span>
+                            <div style="display:flex; gap:8px;">
+                                <button onclick="exportRundownCSV()" class="btn-secondary"
+                                    style="padding:8px 14px; font-size:0.88rem;"><i class="ri-download-2-line"></i>
+                                    Export CSV</button>
+                                <button onclick="printRundown()" class="btn-secondary"
+                                    style="padding:8px 14px; font-size:0.88rem;"><i class="ri-printer-line"></i>
+                                    Print</button>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Jam Kegiatan</th>
+                                        <th>Nama Kegiatan</th>
+                                        <th>Keterangan</th>
+                                        <th>Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tableRundown">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="card mt-4" style="background: var(--bg-main); border: 1px solid var(--border);">
+                            <h3 style="font-size: 1.1rem; margin-bottom: 16px;">Tambah Rundown</h3>
+                            <div class="grid-3" style="gap: 16px; margin-bottom: 16px;">
+                                <div class="form-group">
+                                    <label
+                                        style="font-size: 0.85rem; font-weight: 500; display: block; margin-bottom: 4px;">Jam
+                                        Kegiatan (Dimulai)</label>
+                                    <input type="time" id="rundownJam" style="width: 100%;">
+                                </div>
+                                <div class="form-group" style="grid-column: span 2;">
+                                    <label
+                                        style="font-size: 0.85rem; font-weight: 500; display: block; margin-bottom: 4px;">Nama
+                                        Kegiatan</label>
+                                    <input type="text" id="rundownKegiatan" placeholder="cth: Penyambutan Mempelai..."
+                                        style="width: 100%;">
+                                </div>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 16px;">
+                                <label
+                                    style="font-size: 0.85rem; font-weight: 500; display: block; margin-bottom: 4px;">Keterangan
+                                    / Detail</label>
+                                <input type="text" id="rundownKeterangan" placeholder="Keterangan tambahan..."
+                                    style="width: 100%;">
+                            </div>
+                            <div style="text-align: right;">
+                                <button onclick="addRundown()" class="btn-primary"><i class="ri-add-line"></i> Tambah
+                                    Rundown</button>
+                            </div>
+                        </div>
                     </div>
                 </section>
 
@@ -578,11 +752,16 @@
                     </div>
                     <div class="card">
                         <!-- Toolbar: export & print -->
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
+                        <div
+                            style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
                             <span style="font-size:0.9rem; color:var(--text-muted);" id="undanganInfo">–</span>
                             <div style="display:flex; gap:8px;">
-                                <button onclick="exportUndanganCSV()" class="btn-secondary" style="padding:8px 14px; font-size:0.88rem;"><i class="ri-download-2-line"></i> Export CSV</button>
-                                <button onclick="printUndangan()" class="btn-secondary" style="padding:8px 14px; font-size:0.88rem;"><i class="ri-printer-line"></i> Print</button>
+                                <button onclick="exportUndanganCSV()" class="btn-secondary"
+                                    style="padding:8px 14px; font-size:0.88rem;"><i class="ri-download-2-line"></i>
+                                    Export CSV</button>
+                                <button onclick="printUndangan()" class="btn-secondary"
+                                    style="padding:8px 14px; font-size:0.88rem;"><i class="ri-printer-line"></i>
+                                    Print</button>
                             </div>
                         </div>
                         <div class="table-responsive">
@@ -719,7 +898,8 @@
         </div>
     </div>
 
-    <script type="module" src="script.js?v=14"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <script type="module" src="script.js"></script>
 </body>
 
 </html>

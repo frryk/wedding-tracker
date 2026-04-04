@@ -46,6 +46,7 @@ const defaultState = {
     jobdeskTeman: [],
     masterJobdeskTeman: [],
     masterNamaTeman: [],
+    rundown: [],
     catering: [],
     undangan: [],
     weddingDate: null,
@@ -89,6 +90,7 @@ onValue(ref(db, 'weddingTrackerData'), (snapshot) => {
             jobdeskTeman: data.jobdeskTeman || [],
             masterJobdeskTeman: data.masterJobdeskTeman || [],
             masterNamaTeman: data.masterNamaTeman || [],
+            rundown: data.rundown || [],
             catering: data.catering || [],
             undangan: data.undangan || [],
             weddingDate: data.weddingDate || '',
@@ -107,11 +109,6 @@ onValue(ref(db, 'weddingTrackerData'), (snapshot) => {
     renderAll();
     updateProgress();
 
-    if (appState.theme === 'dark') {
-        document.body.setAttribute('data-theme', 'dark');
-    } else {
-        document.body.removeAttribute('data-theme');
-    }
 });
 
 // Save State to Firebase
@@ -138,23 +135,9 @@ function generateId() {
     return Date.now() + Math.floor(Math.random() * 1000);
 }
 
-// ====== UI Navigation & Theme ======
+// ====== UI Navigation ======
 
 document.addEventListener('DOMContentLoaded', () => {
-
-    // Theme Toggle
-    document.getElementById('themeToggle').addEventListener('click', () => {
-        if (!isLoaded) return;
-        const isDark = document.body.getAttribute('data-theme') === 'dark';
-        if (isDark) {
-            document.body.removeAttribute('data-theme');
-            appState.theme = 'light';
-        } else {
-            document.body.setAttribute('data-theme', 'dark');
-            appState.theme = 'dark';
-        }
-        saveState();
-    });
 
     // Date Select Modal Logic
     const dateModal = document.getElementById('dateModal');
@@ -272,6 +255,10 @@ window.addJobdesk = addJobdesk;
 window.addJobdeskTeman = addJobdeskTeman;
 window.addMasterJobdeskTeman = addMasterJobdeskTeman;
 window.addMasterNamaTeman = addMasterNamaTeman;
+window.addRundown = addRundown;
+window.exportRundownCSV = exportRundownCSV;
+window.printRundown = printRundown;
+window.exportSemuaKeExcel = exportSemuaKeExcel;
 window.addCatering = addCatering;
 window.addSimpleItem = addSimpleItem;
 window.populateJobdeskVendorSelect = populateJobdeskVendorSelect;
@@ -312,7 +299,12 @@ function renderAll() {
     renderMasterNamaTeman();
     populateJobdeskTemanSelects();
     renderJobdeskTeman();
+    renderRundown();
     renderCatering();
+    
+    // Add Dashboard
+    renderDashboard();
+
     renderUndangan();
     updateCountdown();
     populateJobdeskVendorSelect();
@@ -454,7 +446,7 @@ function deleteItem(stateKey, id) {
 
 function confirmDelete() {
     if (!isLoaded || !currentDeleteStateKey || currentDeleteId === null) return;
-    
+
     appState[currentDeleteStateKey] = appState[currentDeleteStateKey].filter(item => item.id != currentDeleteId);
     saveState();
     renderAll();
@@ -530,7 +522,7 @@ function editItem(stateKey, id) {
         case 'budget':
             const kats = ['Venue', 'Konsumsi', 'Attire', 'Entertainment', 'Transport', 'Seserahan', 'Tamu', 'KUA'];
             const katOptions = kats.map(k => `<option value="${k}" ${item.kategori === k ? 'selected' : ''}>${k}</option>`).join('');
-            
+
             html = `
                 <div class="grid-2" style="gap:12px;">
                     <div class="form-group">
@@ -692,10 +684,10 @@ function editItem(stateKey, id) {
             `;
             break;
         case 'jobdeskTeman':
-            const namaOptions = (appState.masterNamaTeman || []).map(n => 
+            const namaOptions = (appState.masterNamaTeman || []).map(n =>
                 `<option value="${n.title}" ${item.nama === n.title ? 'selected' : ''}>${n.title}</option>`
             ).join('');
-            const tugasOptions = (appState.masterJobdeskTeman || []).map(t => 
+            const tugasOptions = (appState.masterJobdeskTeman || []).map(t =>
                 `<option value="${t.title}" ${item.tugas === t.title ? 'selected' : ''}>${t.title}</option>`
             ).join('');
 
@@ -711,6 +703,24 @@ function editItem(stateKey, id) {
                     <select id="editJobTemanTugas" style="width:100%; padding:10px; border-radius:6px; border:1px solid var(--border);">
                         ${tugasOptions || `<option value="${item.tugas}" selected>${item.tugas}</option>`}
                     </select>
+                </div>
+            `;
+            break;
+        case 'rundown':
+            html = `
+                <div class="grid-2" style="gap:12px;">
+                    <div class="form-group">
+                        <label>Jam Kegiatan</label>
+                        <input type="time" id="editRundownJam" value="${item.jam}">
+                    </div>
+                    <div class="form-group">
+                        <label>Nama Kegiatan</label>
+                        <input type="text" id="editRundownKegiatan" value="${item.kegiatan}">
+                    </div>
+                </div>
+                <div class="form-group" style="margin-top:12px;">
+                    <label>Keterangan</label>
+                    <input type="text" id="editRundownKeterangan" value="${item.keterangan || ''}">
                 </div>
             `;
             break;
@@ -807,10 +817,10 @@ function saveEditedItem() {
                 item.lunasAkhir = Number(document.getElementById('editBudLunas').value) || 0;
                 item.lunasDate = document.getElementById('editBudLunasDate').value;
                 item.keterangan = document.getElementById('editBudKet').value.trim();
-                
+
                 // cleanup legacy fields so they don't corrupt the logic later
-                if(item.estimasi) delete item.estimasi;
-                if(item.aktual) delete item.aktual;
+                if (item.estimasi) delete item.estimasi;
+                if (item.aktual) delete item.aktual;
                 break;
             case 'seserahan':
                 item.kategori = document.getElementById('editSesKat').value.trim() || item.kategori;
@@ -834,6 +844,11 @@ function saveEditedItem() {
             case 'jobdeskTeman':
                 item.nama = document.getElementById('editJobTemanNama').value.trim() || item.nama;
                 item.tugas = document.getElementById('editJobTemanTugas').value.trim() || item.tugas;
+                break;
+            case 'rundown':
+                item.jam = document.getElementById('editRundownJam').value || item.jam;
+                item.kegiatan = document.getElementById('editRundownKegiatan').value.trim() || item.kegiatan;
+                item.keterangan = document.getElementById('editRundownKeterangan').value.trim();
                 break;
             case 'catering':
                 item.nama = document.getElementById('editCatNama').value.trim() || item.nama;
@@ -957,8 +972,8 @@ function renderBudget() {
         const dpAkhir = item.dpAkhir || 0;
         const lunasAkhir = item.lunasAkhir || 0;
         // if user had older 'aktual' value we can add it to lunasAkhir for backwards compat
-        const legacyAktual = item.aktual && !item.dpAkhir && !item.lunasAkhir ? Number(item.aktual) : 0; 
-        
+        const legacyAktual = item.aktual && !item.dpAkhir && !item.lunasAkhir ? Number(item.aktual) : 0;
+
         const subtotalEstimasi = Number(harga) * Number(qty);
         const subtotalAktual = Number(dpAkhir) + Number(lunasAkhir) + legacyAktual;
 
@@ -1185,8 +1200,8 @@ function renderModalPackageList() {
                             ${pkg.nama || 'Paket'}
                             ${Number(pkg.harga) > 0 ? `<span style="font-size:0.85rem; color:var(--primary); margin-left:8px; font-weight:500;">${formatRp(pkg.harga)}</span>` : (pkg.harga ? `<span style="font-size:0.85rem; color:var(--primary); margin-left:8px; font-weight:500;">${pkg.harga}</span>` : '')}
                         </div>
-                        ${pkg.fasilitas ? `<div style="font-size:0.8rem; color:var(--text-muted); margin-top:3px;"><i class="ri-star-line" style="color:var(--primary);"></i> <strong>Fasilitas:</strong> ${pkg.fasilitas.replace(/\n/g,'<br>')}</div>` : ''}
-                        ${pkg.sk ? `<div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;"><i class="ri-file-text-line" style="color:var(--primary);"></i> <strong>S&amp;K:</strong> ${pkg.sk.replace(/\n/g,'<br>')}</div>` : ''}
+                        ${pkg.fasilitas ? `<div style="font-size:0.8rem; color:var(--text-muted); margin-top:3px;"><i class="ri-star-line" style="color:var(--primary);"></i> <strong>Fasilitas:</strong> ${pkg.fasilitas.replace(/\n/g, '<br>')}</div>` : ''}
+                        ${pkg.sk ? `<div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;"><i class="ri-file-text-line" style="color:var(--primary);"></i> <strong>S&amp;K:</strong> ${pkg.sk.replace(/\n/g, '<br>')}</div>` : ''}
                     </div>
                     <div style="display:flex; gap:4px; flex-shrink:0;">
                         <button type="button" class="btn-icon edit" onclick="editPackageInModal(${idx})" title="Edit paket"><i class="ri-edit-line"></i></button>
@@ -1513,7 +1528,7 @@ function addJobdesk() {
 // 7.1 Job Desk Teman
 function renderJobdeskTeman() {
     const container = document.getElementById('jobdeskTemanContainer');
-    if(!container) return;
+    if (!container) return;
     container.innerHTML = '';
 
     const grouped = appState.jobdeskTeman.reduce((acc, curr) => {
@@ -1644,6 +1659,125 @@ function addJobdeskTeman() {
 
     saveState();
     showToast('Tugas Panitia ditambahkan');
+}
+
+// 7.2 Rundown Acara
+function renderRundown() {
+    const tbody = document.getElementById('tableRundown');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    // Sort rundown chronologically
+    let sortedRundown = [...(appState.rundown || [])].sort((a, b) => {
+        if (a.jam < b.jam) return -1;
+        if (a.jam > b.jam) return 1;
+        return 0;
+    });
+
+    sortedRundown.forEach(item => {
+        tbody.innerHTML += `
+            <tr>
+                <td style="font-weight: 600; color: var(--primary);"><i class="ri-time-line"></i> ${item.jam}</td>
+                <td><strong>${item.kegiatan}</strong></td>
+                <td>${item.keterangan || '-'}</td>
+                <td>
+                    <div style="display: flex; gap: 4px;">
+                        <button class="btn-icon edit" onclick="editItem('rundown', ${item.id})"><i class="ri-edit-line"></i></button>
+                        <button class="btn-icon delete" onclick="deleteItem('rundown', ${item.id})"><i class="ri-delete-bin-line"></i></button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    });
+
+    const infoEl = document.getElementById('rundownInfo');
+    if (infoEl) infoEl.textContent = `${sortedRundown.length} kegiatan terdaftar`;
+}
+
+function addRundown() {
+    if (!isLoaded) return;
+    const jam = document.getElementById('rundownJam').value;
+    const kegiatan = document.getElementById('rundownKegiatan').value;
+    const keterangan = document.getElementById('rundownKeterangan').value;
+
+    if (!jam || !kegiatan) return showToast('Jam dan Nama Kegiatan wajib diisi');
+
+    appState.rundown.push({
+        id: generateId(),
+        jam: jam,
+        kegiatan: kegiatan,
+        keterangan: keterangan
+    });
+
+    document.getElementById('rundownJam').value = '';
+    document.getElementById('rundownKegiatan').value = '';
+    document.getElementById('rundownKeterangan').value = '';
+
+    saveState();
+    showToast('Kegiatan Rundown ditambahkan');
+}
+
+function exportRundownCSV() {
+    if (!appState.rundown || appState.rundown.length === 0) return showToast('Belum ada data rundown');
+
+    let sortedRundown = [...appState.rundown].sort((a, b) => a.jam < b.jam ? -1 : (a.jam > b.jam ? 1 : 0));
+
+    const rows = [['Jam Kegiatan', 'Nama Kegiatan', 'Keterangan']];
+    sortedRundown.forEach(r => {
+        rows.push([
+            r.jam || '',
+            r.kegiatan || '',
+            r.keterangan || ''
+        ]);
+    });
+    const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'rundown_acara.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('CSV berhasil diunduh');
+}
+
+function printRundown() {
+    if (!appState.rundown || appState.rundown.length === 0) return showToast('Belum ada data rundown');
+
+    let sortedRundown = [...appState.rundown].sort((a, b) => a.jam < b.jam ? -1 : (a.jam > b.jam ? 1 : 0));
+
+    const rows = sortedRundown.map((r, i) => `
+        <tr>
+            <td style="text-align:center;">${i + 1}</td>
+            <td style="font-weight:bold; white-space:nowrap;">${r.jam || ''}</td>
+            <td><strong>${r.kegiatan || ''}</strong></td>
+            <td>${r.keterangan || '-'}</td>
+        </tr>
+    `).join('');
+
+    const win = window.open('', '_blank');
+    win.document.write(`
+        <html><head><title>Rundown Acara</title>
+        <style>
+            body { font-family: Arial, sans-serif; font-size: 13px; padding: 20px; }
+            h2 { text-align:center; margin-bottom: 16px; }
+            table { width:100%; border-collapse:collapse; margin-top: 20px; }
+            th, td { border:1px solid #ccc; padding:8px 10px; text-align:left; vertical-align: top; }
+            th { background:#f5f5f5; font-weight:600; }
+            tr:nth-child(even) { background:#fafafa; }
+            .footer { text-align:right; margin-top:12px; font-size:11px; color:#888; }
+        </style></head>
+        <body>
+        <h2>Rundown Acara Pernikahan Anita & Ferry</h2>
+        <table>
+            <thead><tr><th width="30">No</th><th width="100">Jam Kegiatan</th><th>Nama Kegiatan</th><th>Keterangan</th></tr></thead>
+            <tbody>${rows}</tbody>
+        </table>
+        <p class="footer">Dicetak: ${new Date().toLocaleString('id-ID')}</p>
+        <script>window.print(); window.onafterprint = () => window.close();<\/script>
+        </body></html>
+    `);
+    win.document.close();
 }
 
 // 8. List Catering/Resto
@@ -1918,6 +2052,173 @@ function updateUndanganField(id, field, value) {
         item[field] = value;
         saveState();
     }
+}
+
+// ====== 0. DASHBOARD ======
+function renderDashboard() {
+    if (!isLoaded || !appState) return;
+
+    // 1. Checklist Progress
+    let chkTotal = 0;
+    let chkDone = 0;
+    const chkKeys = ['persiapan', 'timeline', 'berkasCPW', 'berkasCPP', 'seserahan'];
+    chkKeys.forEach(key => {
+        if (appState[key]) {
+            chkTotal += appState[key].length;
+            chkDone += appState[key].filter(i => i.checked).length;
+        }
+    });
+    const chkPct = chkTotal > 0 ? Math.round((chkDone / chkTotal) * 100) : 0;
+    const elDashChecklist = document.getElementById('dashChecklist');
+    if (elDashChecklist) {
+        elDashChecklist.innerHTML = `${chkDone}/${chkTotal} <span style="font-size:1rem; font-weight:normal; color:var(--text-muted);">(${chkPct}%)</span>`;
+    }
+
+    // 2. Budget Progress
+    let bAnggaran = 0;
+    let bCair = 0;
+    (appState.budget || []).forEach(b => {
+        bAnggaran += Number(b.harga || 0) * Number(b.qty || 1);
+        bCair += Number(b.dpAkhir || 0) + Number(b.lunasAkhir || 0);
+        // add legacy if present
+        if (b.aktual && !b.dpAkhir && !b.lunasAkhir) bCair += Number(b.aktual);
+    });
+    const elBudgetVal = document.getElementById('dashBudgetVal');
+    const elBudgetPct = document.getElementById('dashBudgetPct');
+    if (elBudgetVal) elBudgetVal.textContent = formatRp(bCair);
+    if (elBudgetPct) {
+        if (bAnggaran > 0) {
+            const bPct = Math.round((bCair / bAnggaran) * 100);
+            elBudgetPct.textContent = `${bPct}% dicairkan dari estimasi anggaran`;
+        } else {
+            elBudgetPct.textContent = `Belum ada estimasi anggaran`;
+        }
+    }
+
+    // 3. Tamu Undangan
+    let tTotal = 0;
+    let tHadir = 0;
+    (appState.undangan || []).forEach(u => {
+        const qty = Number(u.jumlah || 1);
+        tTotal += qty;
+        if (u.konfirmasi === 'Hadir') tHadir += qty;
+    });
+    const elTamuVal = document.getElementById('dashTamuVal');
+    if (elTamuVal) {
+        elTamuVal.innerHTML = `${tHadir} <span style="font-size:1rem; font-weight:normal; color:var(--text-muted);">/ ${tTotal} Orang</span>`;
+    }
+
+    // 4. Vendors & Panitia
+    const vFix = (appState.vendorFinal || []).length;
+    const vTugas = (appState.jobdesk || []).length;
+    const pTugas = (appState.jobdeskTeman || []).length;
+    const cTest = (appState.catering || []).filter(c => c.testFood).length;
+    
+    if (document.getElementById('dashVendorFix')) document.getElementById('dashVendorFix').textContent = vFix;
+    if (document.getElementById('dashVendorTugas')) document.getElementById('dashVendorTugas').textContent = vTugas;
+    if (document.getElementById('dashPanitiaTugas')) document.getElementById('dashPanitiaTugas').textContent = pTugas;
+    if (document.getElementById('dashCateringTest')) document.getElementById('dashCateringTest').textContent = `${cTest} Teruji`;
+}
+
+function exportSemuaKeExcel() {
+    if (!window.XLSX) return showToast('Modul Excel masih memuat, coba sebentar lagi...');
+    if (!isLoaded || !appState) return;
+
+    showToast('Menyiapkan file master Excel...');
+    const wb = XLSX.utils.book_new();
+
+    // Helper: Buat sheet format simple checklist
+    const makeChecklistSheet = (dataArray, name) => {
+        if (!dataArray || dataArray.length === 0) return;
+        const rows = dataArray.map(i => ({
+            "Judul": i.title,
+            "Keterangan/Link": i.desc || i.link || '',
+            "Status": i.checked ? "SELESAI" : "Tunda"
+        }));
+        const ws = XLSX.utils.json_to_sheet(rows);
+        XLSX.utils.book_append_sheet(wb, ws, name);
+    };
+
+    // 1. Checklist Persiapan Pokok
+    makeChecklistSheet(appState.persiapan, "Persiapan Pokok");
+    
+    // 2. Timeline
+    makeChecklistSheet(appState.timeline, "Timeline");
+    
+    // 3. Berkas KUA (Gabung CPP & CPW)
+    const berkas = [...(appState.berkasCPW || []).map(b=>({...b, title: "[CPW] "+b.title})), ...(appState.berkasCPP || []).map(b=>({...b, title: "[CPP] "+b.title}))];
+    makeChecklistSheet(berkas, "Berkas KUA");
+
+    // 4. Budget
+    if (appState.budget && appState.budget.length > 0) {
+        const rows = appState.budget.map(b => ({
+            "Kategori": b.kategori,
+            "Item": b.item,
+            "Qty": b.qty,
+            "Estimasi Anggaran": b.harga,
+            "Total Estimasi": Number(b.harga)*Number(b.qty),
+            "Telah Dicairkan (DP+Pelunasan)": Number(b.dpAkhir || 0) + Number(b.lunasAkhir || 0) + (b.aktual&&!b.dpAkhir&&!b.lunasAkhir?Number(b.aktual):0),
+            "Keterangan": b.keterangan || ''
+        }));
+        const ws = XLSX.utils.json_to_sheet(rows);
+        XLSX.utils.book_append_sheet(wb, ws, "Budget Keuangan");
+    }
+
+    // 5. Vendor Final
+    if (appState.vendorFinal && appState.vendorFinal.length > 0) {
+        const rows = appState.vendorFinal.map(v => ({
+            "Kategori": v.kategori,
+            "Nama Vendor": v.nama,
+            "Detail/Ig": v.detail || ''
+        }));
+        const ws = XLSX.utils.json_to_sheet(rows);
+        XLSX.utils.book_append_sheet(wb, ws, "Vendor Kunci");
+    }
+
+    // 6. Job Desk Panitia
+    if (appState.jobdeskTeman && appState.jobdeskTeman.length > 0) {
+        const rows = appState.jobdeskTeman.map(p => ({
+            "Nama Panitia": p.nama,
+            "Tugas / Pekerjaan": p.tugas
+        }));
+        const ws = XLSX.utils.json_to_sheet(rows);
+        XLSX.utils.book_append_sheet(wb, ws, "Tugas Panitia");
+    }
+
+    // 7. Rundown Acara
+    if (appState.rundown && appState.rundown.length > 0) {
+        let sortedRundown = [...appState.rundown].sort((a,b)=>a.jam<b.jam?-1:1);
+        const rows = sortedRundown.map(r => ({
+            "Jam": r.jam,
+            "Kegiatan": r.kegiatan,
+            "Keterangan": r.keterangan || ''
+        }));
+        const ws = XLSX.utils.json_to_sheet(rows);
+        XLSX.utils.book_append_sheet(wb, ws, "Rundown Acara");
+    }
+
+    // 8. Tamu Undangan
+    if (appState.undangan && appState.undangan.length > 0) {
+        const rows = appState.undangan.map(u => ({
+            "Nama Tamu": u.nama,
+            "Pihak": u.pihak,
+            "Relasi": u.relasi,
+            "Jml Orang": u.jumlah,
+            "Dikirim?": u.dikirim ? "Sudah" : "Belum",
+            "Konfirmasi": u.konfirmasi
+        }));
+        const ws = XLSX.utils.json_to_sheet(rows);
+        XLSX.utils.book_append_sheet(wb, ws, "Tamu Undangan");
+    }
+
+    // Jika kosong semua
+    if (wb.SheetNames.length === 0) {
+        return showToast('Data sama sekali belum ada untuk diexport');
+    }
+
+    const tgl = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(wb, `Master_Wedding_Data_${tgl}.xlsx`);
+    showToast('File Excel berhasil diunduh!');
 }
 
 // Overall Progress Indicator
