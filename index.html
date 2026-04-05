@@ -766,14 +766,72 @@
                                     Print</button>
                             </div>
                         </div>
+                        <!-- Filter & Sort Toolbar -->
+                        <div
+                            style="background:var(--bg-main); padding:16px; border-radius:var(--radius-sm); border:1px solid var(--border); margin-bottom:16px; display:flex; gap:12px; flex-wrap:wrap;">
+                            <div style="flex:1; min-width:140px;">
+                                <label
+                                    style="font-size:0.8rem; font-weight:500; display:block; margin-bottom:4px; color:var(--text-muted);">Cari
+                                    Nama Tamu</label>
+                                <input type="text" id="filterUndanganCari" oninput="resetUndanganFilter()"
+                                    placeholder="Ketik nama..." style="padding:8px 10px; font-size:0.85rem;">
+                            </div>
+                            <div style="flex:1; min-width:120px;">
+                                <label
+                                    style="font-size:0.8rem; font-weight:500; display:block; margin-bottom:4px; color:var(--text-muted);">Dikirim</label>
+                                <select id="filterUndanganKirim" onchange="resetUndanganFilter()"
+                                    style="padding:8px 10px; font-size:0.85rem;">
+                                    <option value="all">Semua Status</option>
+                                    <option value="sudah">Sudah Dikirim</option>
+                                    <option value="belum">Belum Dikirim</option>
+                                </select>
+                            </div>
+                            <div style="flex:1; min-width:120px;">
+                                <label
+                                    style="font-size:0.8rem; font-weight:500; display:block; margin-bottom:4px; color:var(--text-muted);">Konfirmasi</label>
+                                <select id="filterUndanganKonfirmasi" onchange="resetUndanganFilter()"
+                                    style="padding:8px 10px; font-size:0.85rem;">
+                                    <option value="all">Semua Respon</option>
+                                    <option value="Pending">Pending</option>
+                                    <option value="Hadir">Hadir</option>
+                                    <option value="Tidak Hadir">Tidak Hadir</option>
+                                </select>
+                            </div>
+                        </div>
                         <div class="table-responsive">
                             <table class="data-table">
                                 <thead>
                                     <tr>
-                                        <th>Nama Tamu</th>
-                                        <th>Pihak</th>
-                                        <th>Relasi</th>
-                                        <th>Jml Orang</th>
+                                        <th style="cursor:pointer;" onclick="setUndanganSort('nama')">
+                                            Nama Tamu <i class="ri-arrow-up-down-line"
+                                                style="font-size:0.8rem; color:var(--text-muted);"></i>
+                                        </th>
+                                        <th>
+                                            <div style="display:flex; flex-direction:column; gap:4px;">
+                                                <span style="cursor:pointer;" onclick="setUndanganSort('pihak')">Pihak
+                                                    <i class="ri-arrow-up-down-line"
+                                                        style="font-size:0.8rem;"></i></span>
+                                                <select id="filterUndanganPihak" onchange="resetUndanganFilter()"
+                                                    style="padding:4px; font-size:0.75rem; border-radius:4px; border:1px solid var(--border); background:var(--bg-main);">
+                                                    <option value="all">Semua</option>
+                                                    <option value="CPW">CPW</option>
+                                                    <option value="CPP">CPP</option>
+                                                </select>
+                                            </div>
+                                        </th>
+                                        <th>
+                                            <div style="display:flex; flex-direction:column; gap:4px;">
+                                                <span style="cursor:pointer;" onclick="setUndanganSort('relasi')">Relasi
+                                                    <i class="ri-arrow-up-down-line"
+                                                        style="font-size:0.8rem;"></i></span>
+                                                <input type="text" id="filterUndanganRelasi"
+                                                    oninput="resetUndanganFilter()" placeholder="Cari..."
+                                                    style="padding:4px; font-size:0.75rem; border-radius:4px; border:1px solid var(--border); background:var(--bg-main); width:100%;">
+                                            </div>
+                                        </th>
+                                        <th style="cursor:pointer;" onclick="setUndanganSort('jumlah')">Jml Orang <i
+                                                class="ri-arrow-up-down-line"
+                                                style="font-size:0.8rem; color:var(--text-muted);"></i></th>
                                         <th>Undangan Dikirim</th>
                                         <th>Konfirmasi</th>
                                         <th>Aksi</th>

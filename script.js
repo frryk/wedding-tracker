@@ -1854,17 +1854,70 @@ function renderUndangan() {
     const tbody = document.getElementById('tableUndangan');
     tbody.innerHTML = '';
 
+    // --- APPLY FILTERS & SORTING ---
+    let filteredItems = [...(appState.undangan || [])];
+
+    const cari = (document.getElementById('filterUndanganCari')?.value || '').toLowerCase();
+    const filterPihak = document.getElementById('filterUndanganPihak')?.value || 'all';
+    const filterRelasi = (document.getElementById('filterUndanganRelasi')?.value || '').toLowerCase();
+    const filterKirim = document.getElementById('filterUndanganKirim')?.value || 'all';
+    const filterKonfirmasi = document.getElementById('filterUndanganKonfirmasi')?.value || 'all';
+
+    filteredItems = filteredItems.filter(item => {
+        let match = true;
+        if (cari) {
+            const nama = (item.nama || '').toLowerCase();
+            if (!nama.includes(cari)) match = false;
+        }
+        if (filterRelasi) {
+            const relasi = (item.relasi || '').toLowerCase();
+            if (!relasi.includes(filterRelasi)) match = false;
+        }
+        if (filterPihak !== 'all' && (item.pihak || 'CPW') !== filterPihak) match = false;
+        if (filterKirim === 'sudah' && !item.dikirim) match = false;
+        if (filterKirim === 'belum' && item.dikirim) match = false;
+        if (filterKonfirmasi !== 'all' && (item.konfirmasi || 'Pending') !== filterKonfirmasi) match = false;
+        return match;
+    });
+
+    const sortBy = window.undanganSortBy || 'terbaru';
+    const sortOrder = window.undanganSortOrder || 'asc';
+
+    if (sortBy !== 'terbaru') {
+        filteredItems.sort((a, b) => {
+            let valA = a[sortBy] || '';
+            let valB = b[sortBy] || '';
+            
+            // if comparing numbers
+            if (sortBy === 'jumlah') {
+                valA = Number(valA);
+                valB = Number(valB);
+                if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+                if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+                return 0;
+            } else {
+                valA = valA.toString().toLowerCase();
+                valB = valB.toString().toLowerCase();
+                if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+                if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+                return 0;
+            }
+        });
+    }
+
     const PAGE_SIZE = 10;
-    const allItems = appState.undangan;
-    const totalPages = Math.max(1, Math.ceil(allItems.length / PAGE_SIZE));
+    const totalPages = Math.max(1, Math.ceil(filteredItems.length / PAGE_SIZE));
+    
+    if (typeof undanganPage === 'undefined') window.undanganPage = 1;
     if (undanganPage > totalPages) undanganPage = totalPages;
+    
     const start = (undanganPage - 1) * PAGE_SIZE;
-    const pageItems = allItems.slice(start, start + PAGE_SIZE);
+    const pageItems = filteredItems.slice(start, start + PAGE_SIZE);
 
     let tTotal = 0, tHadir = 0, tTidak = 0, tCpw = 0, tCpp = 0;
 
     // Count ALL items for stats (not just current page)
-    allItems.forEach(item => {
+    (appState.undangan || []).forEach(item => {
         const qty = Number(item.jumlah);
         tTotal += qty;
         const pihak = item.pihak || 'CPW';
@@ -1922,7 +1975,7 @@ function renderUndangan() {
 
     // Info text
     const infoEl = document.getElementById('undanganInfo');
-    if (infoEl) infoEl.textContent = `${allItems.length} tamu terdaftar`;
+    if (infoEl) infoEl.textContent = `${appState.undangan.length} Total Tamu | Filter: ${filteredItems.length} Ditemukan`;
 
     // Pagination controls
     const pagDiv = document.getElementById('paginasiUndangan');
@@ -1934,23 +1987,44 @@ function renderUndangan() {
             for (let p = 1; p <= totalPages; p++) {
                 pages += `<button class="pag-btn ${p === undanganPage ? 'pag-btn-active' : ''}" onclick="setUndanganPage(${p})">${p}</button>`;
             }
+            const displayStart = filteredItems.length > 0 ? start + 1 : 0;
+            const displayEnd = Math.min(start + PAGE_SIZE, filteredItems.length);
             pagDiv.innerHTML = `
                 <div class="pag-controls">
                     <button class="pag-btn" onclick="setUndanganPage(${undanganPage - 1})" ${undanganPage <= 1 ? 'disabled' : ''}><i class="ri-arrow-left-s-line"></i></button>
                     ${pages}
                     <button class="pag-btn" onclick="setUndanganPage(${undanganPage + 1})" ${undanganPage >= totalPages ? 'disabled' : ''}><i class="ri-arrow-right-s-line"></i></button>
                 </div>
-                <p class="pag-info">Menampilkan ${start + 1}–${Math.min(start + PAGE_SIZE, allItems.length)} dari ${allItems.length} tamu &bull; Halaman ${undanganPage} / ${totalPages}</p>
+                <p class="pag-info">Menampilkan ${displayStart}–${displayEnd} baris &bull; Halaman ${undanganPage} / ${totalPages}</p>
             `;
         }
     }
 }
 
 function setUndanganPage(page) {
-    const totalPages = Math.max(1, Math.ceil(appState.undangan.length / 10));
-    undanganPage = Math.max(1, Math.min(page, totalPages));
+    undanganPage = Math.max(1, page);
     renderUndangan();
 }
+
+window.undanganSortBy = 'terbaru';
+window.undanganSortOrder = 'asc';
+
+function setUndanganSort(kolom) {
+    if (window.undanganSortBy === kolom) {
+        window.undanganSortOrder = window.undanganSortOrder === 'asc' ? 'desc' : 'asc';
+    } else {
+        window.undanganSortBy = kolom;
+        window.undanganSortOrder = 'asc';
+    }
+    undanganPage = 1;
+    renderUndangan();
+}
+window.setUndanganSort = setUndanganSort;
+
+window.resetUndanganFilter = function() {
+    undanganPage = 1;
+    renderUndangan();
+};
 
 function exportUndanganCSV() {
     if (!appState.undangan || appState.undangan.length === 0) return showToast('Belum ada data undangan');
