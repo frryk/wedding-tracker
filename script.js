@@ -51,7 +51,8 @@ const defaultState = {
     undangan: [],
     weddingDate: null,
     berkasCPWLink: '',
-    berkasCPPLink: ''
+    berkasCPPLink: '',
+    notes: ''
 };
 
 
@@ -95,7 +96,8 @@ onValue(ref(db, 'weddingTrackerData'), (snapshot) => {
             undangan: data.undangan || [],
             weddingDate: data.weddingDate || '',
             berkasCPWLink: data.berkasCPWLink || '',
-            berkasCPPLink: data.berkasCPPLink || ''
+            berkasCPPLink: data.berkasCPPLink || '',
+            notes: data.notes || ''
         };
     } else {
         // If DB is totally empty (First ever load)
@@ -277,6 +279,8 @@ window.setVendorSeleksiPage = setVendorSeleksiPage;
 window.setUndanganPage = setUndanganPage;
 window.exportUndanganCSV = exportUndanganCSV;
 window.printUndangan = printUndangan;
+window.handleNotesInput = handleNotesInput;
+window.saveNotesManual = saveNotesManual;
 
 // ====== Render Functions ======
 
@@ -298,13 +302,58 @@ function renderAll() {
     renderJobdeskTeman();
     renderRundown();
     renderCatering();
-    
+
     // Add Dashboard
     renderDashboard();
 
     renderUndangan();
     updateCountdown();
     populateJobdeskVendorSelect();
+    renderNotes();
+}
+
+// ====== Notes Ide-Ide ======
+let notesTimeout;
+function handleNotesInput() {
+    if (!isLoaded || !appState) return;
+    const area = document.getElementById('notesArea');
+    appState.notes = area.value;
+    
+    const status = document.getElementById('notesSaveStatus');
+    if(status) {
+        status.textContent = 'Mengetik...';
+        status.style.display = 'inline-block';
+    }
+
+    clearTimeout(notesTimeout);
+    notesTimeout = setTimeout(() => {
+        saveState();
+        if(status) {
+            status.textContent = 'Tersimpan';
+            setTimeout(() => { status.style.display = 'none'; }, 2000);
+        }
+    }, 1000);
+}
+
+function saveNotesManual() {
+    if (!isLoaded || !appState) return;
+    const area = document.getElementById('notesArea');
+    appState.notes = area.value;
+    saveState();
+    showToast('Catatan berhasil disimpan');
+    const status = document.getElementById('notesSaveStatus');
+    if(status) {
+        status.textContent = 'Tersimpan';
+        status.style.display = 'inline-block';
+        setTimeout(() => { status.style.display = 'none'; }, 2000);
+    }
+}
+
+function renderNotes() {
+    const area = document.getElementById('notesArea');
+    if (area && appState) {
+        area.value = appState.notes || '';
+    }
 }
 
 // 1. Persiapan Menikah
@@ -927,7 +976,7 @@ function editGlobalLink(key) {
     if (!isLoaded) return;
     const currentLink = appState[key] || '';
     const name = key === 'berkasCPWLink' ? 'CPW' : 'CPP';
-    
+
     currentEditStateKey = key;
     currentEditId = 'globalLink';
 
@@ -1907,7 +1956,7 @@ function renderUndangan() {
         filteredItems.sort((a, b) => {
             let valA = a[sortBy] || '';
             let valB = b[sortBy] || '';
-            
+
             // if comparing numbers
             if (sortBy === 'jumlah') {
                 valA = Number(valA);
@@ -1927,10 +1976,10 @@ function renderUndangan() {
 
     const PAGE_SIZE = 10;
     const totalPages = Math.max(1, Math.ceil(filteredItems.length / PAGE_SIZE));
-    
+
     if (typeof undanganPage === 'undefined') window.undanganPage = 1;
     if (undanganPage > totalPages) undanganPage = totalPages;
-    
+
     const start = (undanganPage - 1) * PAGE_SIZE;
     const pageItems = filteredItems.slice(start, start + PAGE_SIZE);
 
@@ -2041,7 +2090,7 @@ function setUndanganSort(kolom) {
 }
 window.setUndanganSort = setUndanganSort;
 
-window.resetUndanganFilter = function() {
+window.resetUndanganFilter = function () {
     undanganPage = 1;
     renderUndangan();
 };
@@ -2204,7 +2253,7 @@ function renderDashboard() {
     const vTugas = (appState.jobdesk || []).length;
     const pTugas = (appState.jobdeskTeman || []).length;
     const cTest = (appState.catering || []).filter(c => c.testFood).length;
-    
+
     if (document.getElementById('dashVendorFix')) document.getElementById('dashVendorFix').textContent = vFix;
     if (document.getElementById('dashVendorTugas')) document.getElementById('dashVendorTugas').textContent = vTugas;
     if (document.getElementById('dashPanitiaTugas')) document.getElementById('dashPanitiaTugas').textContent = pTugas;
@@ -2232,12 +2281,12 @@ function exportSemuaKeExcel() {
 
     // 1. Checklist Persiapan Pokok
     makeChecklistSheet(appState.persiapan, "Persiapan Pokok");
-    
+
     // 2. Timeline
     makeChecklistSheet(appState.timeline, "Timeline");
-    
+
     // 3. Berkas KUA (Gabung CPP & CPW)
-    const berkas = [...(appState.berkasCPW || []).map(b=>({...b, title: "[CPW] "+b.title})), ...(appState.berkasCPP || []).map(b=>({...b, title: "[CPP] "+b.title}))];
+    const berkas = [...(appState.berkasCPW || []).map(b => ({ ...b, title: "[CPW] " + b.title })), ...(appState.berkasCPP || []).map(b => ({ ...b, title: "[CPP] " + b.title }))];
     makeChecklistSheet(berkas, "Berkas KUA");
 
     // 4. Budget
@@ -2247,8 +2296,8 @@ function exportSemuaKeExcel() {
             "Item": b.item,
             "Qty": b.qty,
             "Estimasi Anggaran": b.harga,
-            "Total Estimasi": Number(b.harga)*Number(b.qty),
-            "Telah Dicairkan (DP+Pelunasan)": Number(b.dpAkhir || 0) + Number(b.lunasAkhir || 0) + (b.aktual&&!b.dpAkhir&&!b.lunasAkhir?Number(b.aktual):0),
+            "Total Estimasi": Number(b.harga) * Number(b.qty),
+            "Telah Dicairkan (DP+Pelunasan)": Number(b.dpAkhir || 0) + Number(b.lunasAkhir || 0) + (b.aktual && !b.dpAkhir && !b.lunasAkhir ? Number(b.aktual) : 0),
             "Keterangan": b.keterangan || ''
         }));
         const ws = XLSX.utils.json_to_sheet(rows);
@@ -2278,7 +2327,7 @@ function exportSemuaKeExcel() {
 
     // 7. Rundown Acara
     if (appState.rundown && appState.rundown.length > 0) {
-        let sortedRundown = [...appState.rundown].sort((a,b)=>a.jam<b.jam?-1:1);
+        let sortedRundown = [...appState.rundown].sort((a, b) => a.jam < b.jam ? -1 : 1);
         const rows = sortedRundown.map(r => ({
             "Jam": r.jam,
             "Kegiatan": r.kegiatan,
@@ -2378,24 +2427,29 @@ function updateCountdown() {
         const distance = targetDate - now;
 
         if (distance < 0) {
-            timerDisplay.textContent = 'Hari H Telah Tiba! 🎉';
+            timerDisplay.textContent = 'Hari H Telah Tiba! ';
             return;
         }
 
-        const days = Math.floor(distance / (1000 * 60 * 60 * 24));
-        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+        const nowDate = new Date();
+        const targetDateObj = new Date(appState.weddingDate);
 
-        // Pad single digits
-        const h = hours < 10 ? '0' + hours : hours;
-        const m = minutes < 10 ? '0' + minutes : minutes;
-        const s = seconds < 10 ? '0' + seconds : seconds;
+        nowDate.setHours(0, 0, 0, 0);
+        targetDateObj.setHours(0, 0, 0, 0);
 
-        if (days > 0) {
-            timerDisplay.textContent = `${days}Hr ${h}:${m}:${s}`;
+        let months = (targetDateObj.getFullYear() - nowDate.getFullYear()) * 12 + targetDateObj.getMonth() - nowDate.getMonth();
+        let days = targetDateObj.getDate() - nowDate.getDate();
+
+        if (days < 0) {
+            months--;
+            const daysInPrevMonth = new Date(targetDateObj.getFullYear(), targetDateObj.getMonth(), 0).getDate();
+            days += daysInPrevMonth;
+        }
+
+        if (months > 0) {
+            timerDisplay.textContent = `${months} bulan ${days} hari`;
         } else {
-            timerDisplay.textContent = `${h}:${m}:${s}`;
+            timerDisplay.textContent = `${days} hari`;
         }
     }
 

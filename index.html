@@ -44,6 +44,7 @@
                 <button class="nav-btn" data-target="rundown"><i class="ri-time-line"></i> Rundown Acara</button>
                 <button class="nav-btn" data-target="catering"><i class="ri-restaurant-line"></i> List Catering</button>
                 <button class="nav-btn" data-target="undangan"><i class="ri-mail-send-line"></i> List Undangan</button>
+                <button class="nav-btn" data-target="notes"><i class="ri-sticky-note-line"></i> Notes Ide-Ide</button>
             </nav>
 
         </aside>
@@ -893,6 +894,23 @@
                                 <button onclick="addUndangan()" class="btn-primary"><i class="ri-add-line"></i> Tambah
                                     Tamu</button>
                             </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 10. Notes Ide-Ide -->
+                <section id="notes" class="tab-content animate-fade-up">
+                    <div class="card header-card">
+                        <h2>Notes & Ide-Ide</h2>
+                        <p>Tempat referensi apapun bisa Anda simpan di sini otomatis.</p>
+                    </div>
+                    <div class="card">
+                        <textarea id="notesArea" oninput="handleNotesInput()"
+                            placeholder="Tuliskan berbagai ide atau catatan penting di sini..."
+                            style="width: 100%; border-radius: 6px; border: 1px solid var(--border); padding: 16px; font-family: inherit; min-height: 300px; resize: vertical; outline: none; margin-bottom: 16px; background: var(--bg-main); color: var(--text-main); font-size: 0.95rem;"></textarea>
+                        <div style="text-align: right; display: flex; justify-content: flex-end; align-items: center;">
+                            <span id="notesSaveStatus"
+                                style="font-size: 0.85rem; color: var(--primary); font-weight: 500; margin-right: 12px; display: none;"></span>
                         </div>
                     </div>
                 </section>
