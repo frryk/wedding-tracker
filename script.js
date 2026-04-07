@@ -778,6 +778,16 @@ function editItem(stateKey, id) {
 function saveEditedItem() {
     if (!currentEditStateKey || !currentEditId || !appState) return;
 
+    if (currentEditId === 'globalLink') {
+        const newLink = document.getElementById('editGlobalLinkInput')?.value.trim() || '';
+        appState[currentEditStateKey] = newLink;
+        saveState();
+        renderGlobalLinks();
+        closeEditModal();
+        showToast('Link GDrive diperbarui');
+        return;
+    }
+
     const item = appState[currentEditStateKey].find(i => i.id == currentEditId);
     if (!item) return;
 
@@ -917,13 +927,23 @@ function editGlobalLink(key) {
     if (!isLoaded) return;
     const currentLink = appState[key] || '';
     const name = key === 'berkasCPWLink' ? 'CPW' : 'CPP';
-    const newLink = prompt(`Masukkan Link Google Drive untuk Berkas ${name}:`, currentLink);
+    
+    currentEditStateKey = key;
+    currentEditId = 'globalLink';
 
-    if (newLink !== null) {
-        appState[key] = newLink.trim();
-        saveState();
-        renderGlobalLinks();
-        showToast('Link GDrive diperbarui');
+    const modal = document.getElementById('editModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalBody = document.getElementById('modalBody');
+
+    if (modalTitle && modalBody && modal) {
+        modalTitle.textContent = `Edit Link GDrive Berkas ${name}`;
+        modalBody.innerHTML = `
+            <div class="form-group">
+                <label>Link Google Drive (URL)</label>
+                <input type="url" id="editGlobalLinkInput" value="${currentLink}" style="width:100%;" placeholder="https://drive.google.com/...">
+            </div>
+        `;
+        modal.classList.add('show');
     }
 }
 
