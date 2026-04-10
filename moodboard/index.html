@@ -284,6 +284,46 @@
             cursor: pointer;
             font-size: 1.1rem;
         }
+        @media (max-width: 600px) {
+            .filter-container { flex-direction: column; align-items: stretch; padding: 16px; gap: 12px; }
+            .filter-container > div { width: 100%; }
+            .filter-container > div > div { flex-direction: column; gap: 8px; }
+            
+            select.dropdown-tab { width: 100%; min-width: 0; }
+            
+            .filter-container .btn-action, #btnAddPhoto {
+                width: 100%;
+                margin: 0 !important;
+                justify-content: center;
+            }
+
+            #catModal > div > div:nth-of-type(1) { flex-direction: column; }
+            #catModal > div > div:nth-of-type(1) button { width: 100%; justify-content: center; margin-top: 4px; }
+
+            /* Target inline IG container */
+            #addPhotoModal .form-group div[style*="display:flex"] { flex-direction: column !important; }
+            #addPhotoModal .form-group div[style*="display:flex"] button { width: 100%; justify-content: center; margin-top: 4px; }
+
+            .modal-actions {
+                flex-direction: column-reverse;
+                gap: 8px;
+                padding-top: 12px;
+                bottom: -20px;
+            }
+            .modal-actions button {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .modal { padding: 16px; }
+            .modal-content { padding: 20px; margin: auto; }
+            
+            .ig-grid { grid-template-columns: repeat(2, 1fr); max-height: 250px; }
+            .gallery-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+            
+            .content-wrapper { padding: 16px !important; }
+            .topbar-simple h2 { font-size: 1.05rem !important; }
+        }
     </style>
 </head>
 
@@ -458,12 +498,12 @@
         document.getElementById('loadingStatus').style.display = 'block';
 
         // Listen Database
-        onValue(ref(db, 'weddingTrackerData/moodboard'), (snapshot) => {
+        onValue(ref(db, 'weddingMoodboardData'), (snapshot) => {
             const data = snapshot.val();
             if (data) {
                 mbState = {
-                    categories: data.categories || defaultState.categories,
-                    photos: data.photos || []
+                    categories: Array.isArray(data.categories) ? data.categories : Object.values(data.categories || []),
+                    photos: Array.isArray(data.photos) ? data.photos : Object.values(data.photos || [])
                 };
             } else {
                 mbState = JSON.parse(JSON.stringify(defaultState));
@@ -476,7 +516,7 @@
 
         function saveState() {
             if (mbState) {
-                set(ref(db, 'weddingTrackerData/moodboard'), mbState);
+                set(ref(db, 'weddingMoodboardData'), mbState);
             }
         }
 

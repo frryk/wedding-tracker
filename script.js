@@ -111,6 +111,9 @@ onValue(ref(db, 'weddingTrackerData'), (snapshot) => {
     renderAll();
     updateProgress();
 
+}, (error) => {
+    console.error("Firebase Read Error:", error);
+    alert("Koneksi ke Database gagal! " + error.message + "\n\nKemungkinan masa aktif Test Mode Firebase Anda sudah habis (30 hari). Silakan perbarui Rules di Firebase Console.");
 });
 
 // Save State to Firebase
