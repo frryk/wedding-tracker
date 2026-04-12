@@ -260,6 +260,7 @@ window.addMasterNamaTeman = addMasterNamaTeman;
 window.addRundown = addRundown;
 window.exportRundownCSV = exportRundownCSV;
 window.printRundown = printRundown;
+window.printJobdeskTeman = printJobdeskTeman;
 window.exportSemuaKeExcel = exportSemuaKeExcel;
 window.addCatering = addCatering;
 window.addSimpleItem = addSimpleItem;
@@ -1808,6 +1809,51 @@ function exportRundownCSV() {
     a.click();
     URL.revokeObjectURL(url);
     showToast('CSV berhasil diunduh');
+}
+
+function printJobdeskTeman() {
+    if (!appState.jobdeskTeman || appState.jobdeskTeman.length === 0) return showToast('Belum ada data tugas panitia');
+
+    const grouped = appState.jobdeskTeman.reduce((acc, curr) => {
+        if (!acc[curr.nama]) acc[curr.nama] = [];
+        acc[curr.nama].push(curr);
+        return acc;
+    }, {});
+
+    let contentHtml = '';
+    for (const [nama, tasks] of Object.entries(grouped)) {
+        let tasksHtml = tasks.map(t => {
+            const formattedTugas = (t.tugas || '').replace(/\n/g, '<br>');
+            return `<li style="margin-bottom: 8px;">${formattedTugas}</li>`;
+        }).join('');
+
+        contentHtml += `
+            <div style="margin-bottom: 24px; break-inside: avoid;">
+                <h3 style="margin-bottom: 12px; border-bottom: 2px solid #333; padding-bottom: 4px;">Panitia: ${nama}</h3>
+                <ul style="padding-left: 20px;">${tasksHtml}</ul>
+            </div>
+        `;
+    }
+
+    const win = window.open('', '_blank');
+    win.document.write(`
+        <html><head><title>Job Desk Panitia</title>
+        <style>
+            body { font-family: Arial, sans-serif; font-size: 14px; padding: 20px; line-height: 1.6; }
+            h2 { text-align:center; margin-bottom: 24px; text-transform: uppercase; }
+            @media print {
+                @page { margin: 1cm; }
+            }
+        </style>
+        </head><body>
+        <h2>Daftar Job Desk Panitia</h2>
+        ${contentHtml}
+        <script>
+            window.onload = function() { window.print(); window.close(); }
+        </script>
+        </body></html>
+    `);
+    win.document.close();
 }
 
 function printRundown() {
