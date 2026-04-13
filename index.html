@@ -42,7 +42,7 @@
                 <button class="nav-btn" data-target="jobdeskteman"><i class="ri-user-smile-line"></i> Job Desk
                     Panitia</button>
                 <button class="nav-btn" data-target="rundown"><i class="ri-time-line"></i> Rundown Acara</button>
-                <button class="nav-btn" data-target="catering"><i class="ri-restaurant-line"></i> List Catering</button>
+
                 <button class="nav-btn" data-target="undangan"><i class="ri-mail-send-line"></i> List Undangan</button>
                 <button class="nav-btn" data-target="notes"><i class="ri-sticky-note-line"></i> Notes Ide-Ide</button>
             </nav>
@@ -160,10 +160,7 @@
                                     <span>Tugas Panitia Tercatat</span>
                                     <strong id="dashPanitiaTugas">0</strong>
                                 </div>
-                                <div style="display:flex; justify-content:space-between;">
-                                    <span>Kandidat Catering (Test Food)</span>
-                                    <strong id="dashCateringTest">0 Teruji</strong>
-                                </div>
+
                             </div>
                         </div>
                     </div>
@@ -679,39 +676,7 @@
                     </div>
                 </section>
 
-                <!-- 8. List Catering/Resto -->
-                <section id="catering" class="tab-content animate-fade-up">
-                    <div class="card header-card">
-                        <h2>List Catering / Resto</h2>
-                        <p>Daftar kandidat vendor catering beserta paket dan status test food.</p>
-                    </div>
-                    <div class="card">
-                        <div class="table-responsive">
-                            <table class="data-table">
-                                <thead>
-                                    <tr>
-                                        <th>Nama Catering</th>
-                                        <th>Paket / Menu</th>
-                                        <th>Harga (Rp)</th>
-                                        <th>Test Food</th>
-                                        <th>Keputusan</th>
-                                        <th>Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tableCatering">
-                                    <!-- Populated by JS -->
-                                </tbody>
-                            </table>
-                        </div>
-                        <div class="add-item-form mt-4 grid-4">
-                            <input type="text" id="cateringNama" placeholder="Nama Catering">
-                            <input type="text" id="cateringPaket" placeholder="Paket (cth: 500 Porsi Piring Terbang)">
-                            <input type="number" id="cateringHarga" placeholder="Harga Estimasi">
-                            <button onclick="addCatering()" class="btn-primary"><i class="ri-add-line"></i>
-                                Tambah</button>
-                        </div>
-                    </div>
-                </section>
+
 
                 <!-- 9. List Undangan -->
                 <section id="undangan" class="tab-content animate-fade-up">

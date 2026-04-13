@@ -47,7 +47,7 @@ const defaultState = {
     masterJobdeskTeman: [],
     masterNamaTeman: [],
     rundown: [],
-    catering: [],
+
     undangan: [],
     weddingDate: null,
     berkasCPWLink: '',
@@ -92,7 +92,7 @@ onValue(ref(db, 'weddingTrackerData'), (snapshot) => {
             masterJobdeskTeman: data.masterJobdeskTeman || [],
             masterNamaTeman: data.masterNamaTeman || [],
             rundown: data.rundown || [],
-            catering: data.catering || [],
+
             undangan: data.undangan || [],
             weddingDate: data.weddingDate || '',
             berkasCPWLink: data.berkasCPWLink || '',
@@ -262,10 +262,10 @@ window.exportRundownCSV = exportRundownCSV;
 window.printRundown = printRundown;
 window.printJobdeskTeman = printJobdeskTeman;
 window.exportSemuaKeExcel = exportSemuaKeExcel;
-window.addCatering = addCatering;
+
 window.addSimpleItem = addSimpleItem;
 window.populateJobdeskVendorSelect = populateJobdeskVendorSelect;
-window.updateCateringField = updateCateringField;
+
 window.addUndangan = addUndangan;
 window.updateUndanganField = updateUndanganField;
 window.openDateModal = openDateModal;
@@ -305,7 +305,7 @@ function renderAll() {
     populateJobdeskTemanSelects();
     renderJobdeskTeman();
     renderRundown();
-    renderCatering();
+
 
     // Add Dashboard
     renderDashboard();
@@ -774,22 +774,7 @@ function editItem(stateKey, id) {
                 </div>
             `;
             break;
-        case 'catering':
-            html = `
-                <div class="form-group">
-                    <label>Nama Catering</label>
-                    <input type="text" id="editCatNama" value="${item.nama}">
-                </div>
-                <div class="form-group">
-                    <label>Paket</label>
-                    <input type="text" id="editCatPaket" value="${item.paket || ''}">
-                </div>
-                <div class="form-group">
-                    <label>Harga Estimasi (Rp)</label>
-                    <input type="number" id="editCatHarga" value="${item.harga}">
-                </div>
-            `;
-            break;
+
         case 'undangan':
             html = `
                 <div class="grid-2" style="gap:12px;">
@@ -910,11 +895,7 @@ function saveEditedItem() {
                 item.kegiatan = document.getElementById('editRundownKegiatan').value.trim() || item.kegiatan;
                 item.keterangan = document.getElementById('editRundownKeterangan').value.trim();
                 break;
-            case 'catering':
-                item.nama = document.getElementById('editCatNama').value.trim() || item.nama;
-                item.paket = document.getElementById('editCatPaket').value.trim();
-                item.harga = document.getElementById('editCatHarga').value || item.harga;
-                break;
+
             case 'undangan':
                 item.nama = document.getElementById('editUndNama').value.trim() || item.nama;
                 item.pihak = document.getElementById('editUndPihak').value.trim() || 'CPW';
@@ -1035,7 +1016,9 @@ function renderBudget() {
     let tEstimasi = 0;
     let tAktual = 0;
 
-    appState.budget.forEach(item => {
+    const sortedBudget = [...appState.budget].sort((a, b) => (a.kategori || '').localeCompare(b.kategori || ''));
+
+    sortedBudget.forEach(item => {
         // Fallbacks for older data schemas
         const harga = item.harga || item.estimasi || 0;
         const qty = item.qty || 1;
@@ -1895,84 +1878,9 @@ function printRundown() {
     win.document.close();
 }
 
-// 8. List Catering/Resto
-function renderCatering() {
-    const tbody = document.getElementById('tableCatering');
-    tbody.innerHTML = '';
-
-    appState.catering.forEach(item => {
-        const badgeKeputusan = item.keputusan === 'DP / Final' ? `<span class="badge success">${item.keputusan}</span>` :
-            (item.keputusan === 'Ditolak' ? `<span class="badge danger">${item.keputusan}</span>` : `<span class="badge warning">${item.keputusan}</span>`);
-
-        tbody.innerHTML += `
-            <tr>
-                <td><strong>${item.nama}</strong></td>
-                <td>${item.paket}</td>
-                <td>${formatRp(item.harga)}</td>
-                <td>
-                    <select onchange="updateCateringField(${item.id}, 'testFood', this.value === 'true')" style="padding: 4px; font-size: 0.85rem; width: auto;">
-                        <option value="false" ${!item.testFood ? 'selected' : ''}>Belum</option>
-                        <option value="true" ${item.testFood ? 'selected' : ''}>Sudah</option>
-                    </select>
-                </td>
-                <td>
-                    <select onchange="updateCateringField(${item.id}, 'keputusan', this.value)" style="padding: 4px; font-size: 0.85rem; width: auto;">
-                        <option value="Pending" ${item.keputusan === 'Pending' ? 'selected' : ''}>Pending</option>
-                        <option value="DP / Final" ${item.keputusan === 'DP / Final' ? 'selected' : ''}>DP / Final</option>
-                        <option value="Ditolak" ${item.keputusan === 'Ditolak' ? 'selected' : ''}>Ditolak</option>
-                    </select>
-                </td>
-                <td>
-                    <div style="display: flex; gap: 4px;">
-                        <button class="btn-icon edit" onclick="editItem('catering', ${item.id})"><i class="ri-edit-line"></i></button>
-                        <button class="btn-icon delete" onclick="deleteItem('catering', ${item.id})"><i class="ri-delete-bin-line"></i></button>
-                    </div>
-                </td>
-            </tr>
-        `;
-    });
-}
-
-function addCatering() {
-    if (!isLoaded) return;
-    const nama = document.getElementById('cateringNama').value;
-    const paket = document.getElementById('cateringPaket').value;
-    const harga = document.getElementById('cateringHarga').value;
-
-    if (!nama) return showToast('Nama catering wajib diisi');
-
-    appState.catering.push({
-        id: generateId(),
-        nama: nama,
-        paket: paket,
-        harga: harga || 0,
-        testFood: false,
-        keputusan: 'Pending'
-    });
-
-    document.getElementById('cateringNama').value = '';
-    document.getElementById('cateringPaket').value = '';
-    document.getElementById('cateringHarga').value = '';
-
-    saveState();
-    showToast('Kandidat catering ditambahkan');
-}
-
-function updateCateringField(id, field, value) {
-    if (!isLoaded) return;
-    const item = appState.catering.find(i => i.id == id);
-    if (item) {
-        item[field] = value;
-        saveState();
-    }
-}
 
 // 9. List Undangan
-function renderUndangan() {
-    const tbody = document.getElementById('tableUndangan');
-    tbody.innerHTML = '';
-
-    // --- APPLY FILTERS & SORTING ---
+function getFilteredUndangan() {
     let filteredItems = [...(appState.undangan || [])];
 
     const cari = (document.getElementById('filterUndanganCari')?.value || '').toLowerCase();
@@ -2022,6 +1930,15 @@ function renderUndangan() {
             }
         });
     }
+    return filteredItems;
+}
+
+function renderUndangan() {
+    const tbody = document.getElementById('tableUndangan');
+    tbody.innerHTML = '';
+
+    // --- APPLY FILTERS & SORTING ---
+    let filteredItems = getFilteredUndangan();
 
     const PAGE_SIZE = 10;
     const totalPages = Math.max(1, Math.ceil(filteredItems.length / PAGE_SIZE));
@@ -2145,9 +2062,10 @@ window.resetUndanganFilter = function () {
 };
 
 function exportUndanganCSV() {
-    if (!appState.undangan || appState.undangan.length === 0) return showToast('Belum ada data undangan');
+    const filteredUndangan = getFilteredUndangan();
+    if (!filteredUndangan || filteredUndangan.length === 0) return showToast('Belum ada data undangan atau data tidak ditemukan pada filter');
     const rows = [['Nama Tamu', 'Pihak', 'Relasi', 'Jumlah Orang', 'Undangan Dikirim', 'Konfirmasi']];
-    appState.undangan.forEach(u => {
+    filteredUndangan.forEach(u => {
         rows.push([
             u.nama || '',
             u.pihak || 'CPW',
@@ -2169,8 +2087,9 @@ function exportUndanganCSV() {
 }
 
 function printUndangan() {
-    if (!appState.undangan || appState.undangan.length === 0) return showToast('Belum ada data undangan');
-    const rows = appState.undangan.map((u, i) => `
+    const filteredUndangan = getFilteredUndangan();
+    if (!filteredUndangan || filteredUndangan.length === 0) return showToast('Belum ada data undangan atau data tidak ditemukan pada filter');
+    const rows = filteredUndangan.map((u, i) => `
         <tr>
             <td>${i + 1}</td>
             <td><strong>${u.nama || ''}</strong></td>
@@ -2301,12 +2220,12 @@ function renderDashboard() {
     const vFix = (appState.vendorFinal || []).length;
     const vTugas = (appState.jobdesk || []).length;
     const pTugas = (appState.jobdeskTeman || []).length;
-    const cTest = (appState.catering || []).filter(c => c.testFood).length;
+
 
     if (document.getElementById('dashVendorFix')) document.getElementById('dashVendorFix').textContent = vFix;
     if (document.getElementById('dashVendorTugas')) document.getElementById('dashVendorTugas').textContent = vTugas;
     if (document.getElementById('dashPanitiaTugas')) document.getElementById('dashPanitiaTugas').textContent = pTugas;
-    if (document.getElementById('dashCateringTest')) document.getElementById('dashCateringTest').textContent = `${cTest} Teruji`;
+
 }
 
 function exportSemuaKeExcel() {
